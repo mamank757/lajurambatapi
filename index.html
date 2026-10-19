@@ -40,6 +40,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 body { background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, sans-serif; line-height: 1.5; -webkit-font-smoothing: antialiased; }
 main { max-width: 680px; margin: 0 auto; padding: 16px 16px 80px; }
@@ -110,7 +111,7 @@ td:first-child, th:first-child { text-align: left; }
 <body>
 <div class="bar" role="status" aria-live="polite">
   <span>Rambat: <b id="rS">–</b><small>m/mnt</small></span>
-  <span>Nyala: <b id="flS">–</b><small>m</small></span>
+  <span>Nyala: <b id="flS">–</b><small>cm</small></span>
   <span>Intensitas: <b id="iiS">–</b><small>kW/m</small></span>
 </div>
 
@@ -171,7 +172,7 @@ td:first-child, th:first-child { text-align: left; }
   <div class="big"><span id="r">–</span> <small>m/menit</small></div>
   <div class="k">
     <div><b id="dirS">–</b>Arah Rambat Netto</div>
-    <div><b id="fl">–</b>Panjang nyala (m)</div>
+    <div><b id="fl">–</b>Panjang nyala (cm)</div>
     <div><b id="ii">–</b>Intensitas (kW/m)</div>
     <div><b id="mm">–</b>Kadar air cacahan</div>
     <div><b id="r0">–</b>Laju dasar (m/mnt)</div>
@@ -205,7 +206,7 @@ td:first-child, th:first-child { text-align: left; }
 </section>
 
 <section>
-  <h2>Laju Rambat per Jam</h2>
+  <h2>Laju Rambat Api per Jam</h2>
   <div class="sc" id="ch"></div>
 </section>
 
@@ -404,14 +405,29 @@ function renderHourly(F,P){
   const n=H.time.length, d=[];
   for(let i=0;i<n;i++){
     const T=H.temperature_2m[i], r=H.relative_humidity_2m[i], w=H.wind_speed_10m[i];
-    d.push(T==null||r==null||w==null?null:ros(T,r,w,F,P).R);
+    // Konversi m/mnt ke m/jam dengan dikali 60
+    d.push(T==null||r==null||w==null?null:ros(T,r,w,F,P).R * 60);
   }
-  const vals=d.filter(x=>fin(x)), mx=Math.max(1e-6,...vals), W=340, Ht=140, l=34, bw=(W-l)/n, top=20;
+  
+  const vals=d.filter(x=>fin(x));
+  if(!vals.length){box.innerHTML='<p class="mut">Input cuaca tidak valid.</p>'; return}
+  
+  const mx=Math.max(1e-6,...vals), W=340, Ht=140, l=44, bw=(W-l)/n, top=20;
+  // Jika laju < 10 m/jam pakai 1 desimal. Jika lebih, bulatkan tanpa koma
+  const dec = mx < 10 ? 1 : 0; 
+  
   let s=`<svg viewBox="0 0 ${W} ${Ht+26}" role="img">`;
-  [0,1].forEach(p=>{
+  
+  // Label Satuan
+  s+=`<text x="${l}" y="10" font-size="10" font-weight="600" fill="var(--mut)">Laju (m/jam)</text>`;
+  
+  // Menggunakan skala 0, 0.5 (tengah), dan 1 (puncak) agar rentang nilai mudah dibaca
+  [0, 0.5, 1].forEach(p=>{
     const y=top+(1-p)*(Ht-top);
-    s+=`<path d="M${l} ${y}H${W}" stroke="var(--ln)"/><text x="${l-6}" y="${y+4}" font-size="10" text-anchor="end" fill="var(--mut)">${f(mx*p,1)}</text>`;
+    s+=`<path d="M${l} ${y}H${W}" stroke="var(--ln)" stroke-dasharray="2 4"/>`;
+    s+=`<text x="${l-6}" y="${y+4}" font-size="10" text-anchor="end" fill="var(--mut)">${f(mx*p, dec)}</text>`;
   });
+  
   d.forEach((x,i)=>{
     if(fin(x)){
       const h=x/mx*(Ht-top);
@@ -439,8 +455,9 @@ function calc(){
   if(!fin(o.R)){blank('Kalkulasi gagal dengan input tersebut.'); return}
   
   const fl=0.0775*Math.pow(Math.max(0,o.I),0.46);
-  $('r').textContent=f(o.R,2); $('rS').textContent=f(o.R,2);
-  $('fl').textContent=f(fl,2); $('flS').textContent=f(fl,2);$('ii').textContent=f(o.I,0); $('iiS').textContent=f(o.I,0);$('mm').textContent=f(o.Mf*100,1)+'%';
+  const fl_cm = fl * 100; // Konversi m ke cm
+  
+  $('r').textContent=f(o.R,2); $('rS').textContent=f(o.R,2);$('fl').textContent=f(fl_cm,1); $('flS').textContent=f(fl_cm,1);$('ii').textContent=f(o.I,0); $('iiS').textContent=f(o.I,0);$('mm').textContent=f(o.Mf*100,1)+'%';
   $('r0').textContent=f(o.R0,2);$('wf').textContent='×'+f(1+o.phiNet,2);
   $('ir').textContent=f(o.IR,0);$('br').textContent=f(o.ratio,2);
   $('dp').textContent=f(F.dep*100,1)+' cm';$('dirS').textContent=f(o.spreadDir,1)+'°';
