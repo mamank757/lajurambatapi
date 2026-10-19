@@ -35,7 +35,7 @@ table{border-collapse:collapse;width:100%;min-width:480px;font-size:.8rem}th,td{
 </style></head>
 <body><main>
 <h1>Laju rambat api pembakaran jerami</h1>
-<p class="sub">Model Rothermel yang disederhanakan untuk jerami padi, dengan cuaca dari Open-Meteo pada titik koordinat dan jam pilihan Anda.</p>
+<p class="sub">Model Rothermel untuk hamparan cacahan jerami padi pasca-combine harvester.</p>
 
 <section>
 <h2>1. Lokasi dan waktu</h2>
@@ -66,17 +66,14 @@ table{border-collapse:collapse;width:100%;min-width:480px;font-size:.8rem}th,td{
 </label>
 <label>Suhu udara (°C)<input id="t" type="number" step="0.1" value="32"></label>
 <label>Kelembapan udara (%)<input id="rh" type="number" step="1" min="1" max="100" value="60"></label>
-<label style="grid-column:1/-1">Kerapatan jerami Tapin: <b id="rv">8</b> kg/m³<input id="rho" type="range" min="1" max="40" step="0.5" value="8"></label>
+<label style="grid-column:1/-1">Kerapatan cacahan: <b id="rv">20</b> kg/m³<input id="rho" type="range" min="1" max="40" step="0.5" value="20"></label>
 </div>
 <details style="margin-top:12px" open><summary>Asumsi lanjutan</summary>
 <div class="g" style="margin-top:8px">
-<label>Muatan bahan bakar (kg/m²)<input id="w0" type="number" step="0.05" min="0.1" value="0.6"></label>
+<label>Muatan bahan bakar rata-rata (kg/m²)<input id="w0" type="number" step="0.05" min="0.1" value="0.6"></label>
 <label>Faktor reduksi angin (10 m ke tinggi api)<input id="waf" type="number" step="0.01" min="0.01" max="1" value="0.15"></label>
 <label>Rasio Luas Permukaan Cacahan (m⁻¹)<input id="sigma_val" type="number" step="100" min="3000" max="12000" value="8000"></label>
-<label>Kadar Air Tunggul (%)<input id="mstubble" type="number" step="5" min="5" max="200" value="60"></label>
 <label>Kadar air cacahan (%; 8% = asumsi sangat kering)<input id="mf" type="number" step="0.5" min="1" max="40" value="8"></label>
-<label>Panjang potongan jerami (cm)<input id="len" type="number" step="1" min="1" value="25"></label>
-<label>Diameter batang jerami (mm)<input id="dia" type="number" step="0.5" min="0.5" value="5"></label>
 <label>Faktor emisi CO₂ (g/kg jerami kering)<input id="ef" type="number" step="10" min="1" value="1460"></label>
 <label>Fraksi jerami yang terbakar<input id="cf" type="number" step="0.05" min="0.1" max="1" value="0.8"></label>
 </div></details>
@@ -93,8 +90,8 @@ table{border-collapse:collapse;width:100%;min-width:480px;font-size:.8rem}th,td{
 <div><b id="r0">–</b>laju tanpa angin (m/mnt)</div>
 <div><b id="cl">–</b>kategori</div>
 <div><b id="dp">–</b>tebal hamparan</div>
-<div><b id="rx">–</b>batas kerapatan acak</div>
-<div><b id="ar">–</b>rasio panjang/diameter</div>
+<div><b id="rx">–</b>muatan lokal</div>
+<div><b id="ar">–</b>tutupan cacahan</div>
 </div>
 <p id="nt" style="margin:12px 0 0;font-size:.85rem;color:var(--mut)"></p>
 </section>
@@ -106,7 +103,7 @@ table{border-collapse:collapse;width:100%;min-width:480px;font-size:.8rem}th,td{
 <label>Jarak penerima dari tepi depan api (m)<input id="dd" type="number" min="5" step="5" value="100"></label>
 <label style="grid-column:1/-1">Kelas stabilitas atmosfer<select id="st"><option value="">Otomatis dari radiasi, awan, dan angin</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option></select></label>
 </div>
-<p id="dg_label" style="margin:14px 0 4px;font-size:.85rem;color:var(--mut)">Perluasan area terbakar, tampak atas (angin dari Timur meniup ke Barat, titik hitam = titik sulut)</p>
+<p id="dg_label" style="margin:14px 0 4px;font-size:.85rem;color:var(--mut)">Perluasan area terbakar, tampak atas (titik hitam = titik sulut)</p>
 <div class="sc" id="dg"></div>
 <div class="sc" style="margin-top:12px"><table id="tb"></table></div>
 <p style="margin:14px 0 4px;font-size:.85rem;color:var(--mut)">Kenaikan CO₂ di atas latar searah angin, menurut jarak dari tepi depan api</p>
@@ -192,40 +189,41 @@ $('go').onclick=go;
 const n=new Date();n.setMinutes(0,0,0);$('dt').value=new Date(n-n.getTimezoneOffset()*6e4).toISOString().slice(0,16);
 </script>
 <script>
-/* PATCH KONDISI PASCA-HARVESTER TERKOREKSI */
+/* PATCH KONDISI PASCA-HARVESTER TERKOREKSI (HANYA CACAHAN) */
 (() => {
 'use strict';
 const el = id => document.getElementById(id);
 if (!el('rho') || !el('w0') || typeof ros !== 'function') { console.error('Patch membutuhkan HTML dan script utama.'); return; }
 const number = id => Number.parseFloat(el(id)?.value), finite = Number.isFinite;
-const state = {valid:false, depth:0.03, height:0.25, load:0.6, cover:null, density:20};
+const state = {valid:false, depth:0.03, load:0.6, cover:null, density:20};
 const MS2FPM = 196.850394, MS2MPH = 2.23694;
 
 el('rho').closest('label').innerHTML = 'Kerapatan hamparan ekuivalen: <b id="rv">20</b> kg/m³<input id="rho" type="number" step="0.01" readonly aria-readonly="true">';
 const loadLabel = el('w0').closest('label');
 loadLabel.replaceChild(document.createTextNode('Muatan cacahan kering, rata-rata per luas lahan (kg/m²)'), loadLabel.firstChild);
 el('w0').min = '0.001'; el('w0').step = '0.01';
-el('len').closest('label').innerHTML = 'Tinggi tunggul tegak (cm)<input id="stubbleHeight" type="number" min="0" step="1" value="25">';
-el('dia').closest('label').innerHTML = 'Ketebalan lapisan cacahan (cm)<input id="litterDepth" type="number" min="0.1" step="0.1" value="3">';
-el('mstubble').closest('label').innerHTML = 'Kadar air tunggul (%) (informasi; tidak masuk hitungan)<input id="mstubble" type="number" step="5" min="1" max="200" value="8">';
-el('litterDepth').closest('.g').insertAdjacentHTML('beforeend',
+
+// Hapus input lama yang berhubungan dengan tunggul dan buat input baru untuk cacahan
+const parentG = el('w0').closest('.g');
+parentG.insertAdjacentHTML('beforeend',
+ '<label>Ketebalan lapisan cacahan (cm)<input id="litterDepth" type="number" min="0.1" step="0.1" value="3"></label>'+
  '<label>Tutupan cacahan (%; ukur atau ubah asumsi)<input id="litterCover" type="number" min="1" max="100" step="1" value="85"></label>'+
- '<p style="grid-column:1/-1;margin:0;color:var(--mut);font-size:.85rem">Skenario: sawah tanam pindah; rumpun berjarak; tunggul tegak 25 cm; daun dan malai halus dari combine tersebar relatif merata dan tidak menumpuk tebal. Tutupan awal 85% hanyalah asumsi yang harus diganti dengan pengukuran atau perkiraan lapangan. Muatan 0,6 kg/m², tebal cacahan 3 cm, WAF 0,15, dan Sigma 8000 m⁻¹ juga nilai awal yang belum dikalibrasi.</p>');
+ '<p style="grid-column:1/-1;margin:0;color:var(--mut);font-size:.85rem">Skenario: Pemodelan rambatan api murni berdasarkan lapisan cacahan jerami halus (daun/malai). Nilai muatan 0,6 kg/m², tebal 3 cm, tutupan 85%, dan Sigma 8000 m⁻¹ adalah asumsi awal.</p>');
 
 function setMetric(id, cap){const box=el(id)?.parentElement;if(!box)return;box.replaceChildren();const b=document.createElement('b');b.id=id;b.textContent='–';box.append(b,document.createTextNode(cap))}
-setMetric('fl','panjang nyala model (m; sangat kasar)');setMetric('dp','tebal lapisan cacahan');setMetric('rx','tinggi tunggul tegak');setMetric('ar','tutupan cacahan');
-el('dg').insertAdjacentHTML('beforebegin','<p style="margin:12px 0 4px;color:var(--mut);font-size:.85rem">Penampang skematis pasca-harvester (Two-Fuel Approximation)</p><div id="fuelProfile" class="sc"></div>');
+setMetric('fl','panjang nyala model (m)');setMetric('dp','tebal lapisan cacahan');setMetric('rx','muatan lokal area tertutup');setMetric('ar','tutupan cacahan');
+el('dg').insertAdjacentHTML('beforebegin','<p style="margin:12px 0 4px;color:var(--mut);font-size:.85rem">Penampang skematis lapisan cacahan jerami</p><div id="fuelProfile" class="sc"></div>');
 
 const sub=document.querySelector('p.sub');
-if(sub)sub.textContent='Estimasi skenario rambatan api untuk sawah tanam pindah pasca-combine: tunggul tegak 25 cm, rumpun berjarak, dan cacahan daun/malai halus yang relatif merata. Ini model eksploratif, bukan prediksi tervalidasi untuk jerami padi.';
+if(sub)sub.textContent='Estimasi rambatan api untuk lapisan cacahan jerami padi pasca-combine harvester.';
 const det=[...document.querySelectorAll('details')].find(d=>d.querySelector('summary')?.textContent.includes('Rumus dan batasan'));
-if(det)det.innerHTML='<summary>Rumus dan batasan</summary><p>Rothermel dikembangkan untuk hamparan bahan bakar yang relatif seragam dan kontinu, bukan khusus residu padi pasca-combine. Tutupan cacahan digunakan dengan pendekatan luas-tertimbang: laju rambat efektif = fraksi tutupan × laju rambat pada bagian yang tertutup bahan bakar. Muatan kering per luas lahan dikonversi menjadi muatan lokal pada bagian tertutup (muatan lahan ÷ fraksi tutupan) untuk menghitung kerapatan dan laju rambat lokal. Ini pendekatan skenario, bukan hukum universal: efek celah, bentuk rumpun, arah barisan, dan kemungkinan api melompati celah belum dimodelkan atau divalidasi untuk jerami padi. WAF 0,15, Sigma 8000 m⁻¹, muatan 0,6 kg/m², tebal 3 cm, dan tutupan awal 85% adalah asumsi yang perlu diukur/dikalibrasi. Tinggi tunggul tidak sama dengan tebal hamparan. Kadar air cacahan default 8% adalah asumsi kemarau, bukan hasil pengukuran.</p>';
+if(det)det.innerHTML='<summary>Rumus dan batasan</summary><p>Model Rothermel menghitung laju rambat api pada hamparan cacahan halus jerami. Tutupan cacahan digunakan dengan pendekatan luas-tertimbang: laju rambat efektif = fraksi tutupan × laju rambat pada bagian yang tertutup bahan bakar. Muatan rata-rata dikonversi menjadi muatan lokal pada bagian yang tertutup cacahan (muatan ÷ fraksi tutupan).</p>';
 
 function syncFuel(){
- state.depth=number('litterDepth')/100;state.height=number('stubbleHeight')/100;state.load=number('w0');
+ state.depth=number('litterDepth')/100;state.load=number('w0');
  state.cover=number('litterCover')/100;
  const coverOK=finite(state.cover)&&state.cover>0&&state.cover<=1;
- state.valid=finite(state.depth)&&state.depth>0&&finite(state.height)&&state.height>=0&&finite(state.load)&&state.load>0&&coverOK;
+ state.valid=finite(state.depth)&&state.depth>0&&finite(state.load)&&state.load>0&&coverOK;
  state.localLoad=state.valid?state.load/state.cover:NaN;
  state.density=state.valid?state.localLoad/state.depth:NaN;
  el('rho').value=state.valid?state.density.toFixed(6):'';
@@ -240,7 +238,7 @@ function modelInputsValid(T,RH,U10,rho){
 }
 
 ros=function(T,RH,U10,rho){
- if(!modelInputsValid(T,RH,U10,rho))return{R:NaN,R0:NaN,Mf:NaN,I:NaN,windLimited:false,midflame:NaN,heatSinkLoss:0};
+ if(!modelInputsValid(T,RH,U10,rho))return{R:NaN,R0:NaN,Mf:NaN,I:NaN,windLimited:false,midflame:NaN};
  const Tf=T*1.8+32;let emc;
  if(RH<10)emc=0.03229+0.281073*RH-0.000578*RH*Tf;
  else if(RH<50)emc=2.22749+0.160107*RH-0.014784*Tf;
@@ -288,16 +286,11 @@ conc=function(M,t,xo,d,u,cls,T){
 
 function profile(){
  if(!state.valid){el('fuelProfile').textContent='Periksa input bahan bakar.';return}
- const gy=150,sc=(gy-20)/Math.max(0.30,state.height,state.depth),lh=state.depth*sc,sh=state.height*sc;
- let s=`<svg viewBox="0 0 520 195" role="img" aria-label="Penampang tunggul tegak dan lapisan cacahan"><path d="M20 ${gy}H500" stroke="var(--ink)" stroke-width="2"/><text x="22" y="181" font-size="11" fill="var(--mut)">Tanah; susunan batang bersifat skematis</text>`;
- for(let i=0;i<15;i++){const x=40+i*31;s+=`<path d="M${x} ${gy}L${x+(i%2?2:-2)} ${gy-sh}" stroke="var(--bar)" stroke-width="3"/>`}
- if(state.cover===null){
-  s+=`<rect x="22" y="${gy-lh}" width="476" height="${lh}" fill="var(--bar)" fill-opacity=".15" stroke="var(--mut)" stroke-dasharray="4 3"/><text x="250" y="17" text-anchor="middle" font-size="10" fill="var(--mut)">Tutupan belum diukur; kotak hanya menunjukkan ketebalan</text>`;
- }else{
-  const n=24,cw=476/n;for(let i=0;i<n;i++)s+=`<rect x="${22+i*cw}" y="${gy-lh}" width="${cw*state.cover}" height="${lh}" fill="var(--bar)" fill-opacity=".6"/>`;
-  s+=`<text x="250" y="17" text-anchor="middle" font-size="10" fill="var(--mut)">Tutupan ${f(state.cover*100,0)}%; pola sebaran hanya ilustrasi</text>`;
- }
- s+=`</svg><p style="margin:0;color:var(--mut);font-size:.85rem">Tunggul ${f(state.height*100,1)} cm; cacahan ${f(state.depth*100,1)} cm.</p>`;
+ const gy=150,sc=(gy-20)/Math.max(0.30,state.depth),lh=state.depth*sc;
+ let s=`<svg viewBox="0 0 520 195" role="img" aria-label="Penampang lapisan cacahan"><path d="M20 ${gy}H500" stroke="var(--ink)" stroke-width="2"/><text x="22" y="181" font-size="11" fill="var(--mut)">Tanah</text>`;
+ const n=24,cw=476/n;for(let i=0;i<n;i++)s+=`<rect x="${22+i*cw}" y="${gy-lh}" width="${cw*state.cover}" height="${lh}" fill="var(--bar)" fill-opacity=".6"/>`;
+ s+=`<text x="250" y="17" text-anchor="middle" font-size="10" fill="var(--mut)">Tutupan cacahan ${f(state.cover*100,0)}%; tebal ${f(state.depth*100,1)} cm</text>`;
+ s+=`</svg>`;
  el('fuelProfile').innerHTML=s;
 }
 
@@ -368,19 +361,16 @@ calc=function(){
  el('fl').textContent=f(0.0775*Math.max(0,o.I)**0.46,2);el('ii').textContent=f(o.I,0);
  el('mm').textContent=f(o.Mf*100,1)+'%';el('r0').textContent=f(o.R0,2);
  el('cl').textContent=o.R>0?'estimasi model':'nol menurut model';
- el('dp').textContent=f(state.depth*100,1)+' cm';el('rx').textContent=f(state.height*100,1)+' cm';
+ el('dp').textContent=f(state.depth*100,1)+' cm';
+ el('rx').textContent=f(state.localLoad,2)+' kg/m²';
  el('ar').textContent=f(state.cover*100,0)+'%';
  
- let catatan = `Muatan rata-rata lahan ${f(state.load,2)} kg/m²; muatan lokal area tertutup ${f(state.localLoad,2)} kg/m²; tebal ${f(state.depth*100,1)} cm; kerapatan lokal ${f(rho,2)} kg/m³. Laju rambat efektif sudah dikalikan fraksi tutupan (${f(state.cover*100,0)}%).`;
- if (o.heatSinkLoss > 0) {
-     catatan += ` Tunggul basah menyerap panas dan mereduksi intensitas reaksi (I_R) sebesar ${f(o.heatSinkLoss, 1)}%.`;
- }
- el('nt').textContent = catatan;
+ el('nt').textContent = `Muatan rata-rata lahan ${f(state.load,2)} kg/m²; muatan lokal area tertutup ${f(state.localLoad,2)} kg/m²; tebal ${f(state.depth*100,1)} cm; kerapatan ekuivalen ${f(rho,2)} kg/m³. Laju rambat efektif sudah dikalikan fraksi tutupan (${f(state.cover*100,0)}%).`;
  
  render4(o,T,U);chart(rho);
 };
 
-const ids=new Set(['w','wdir','t','rh','rho','w0','waf','sigma_val','mstubble','mf','dur','dd','st','ef','cf','stubbleHeight','litterDepth','litterCover']);
+const ids=new Set(['w','wdir','t','rh','rho','w0','waf','sigma_val','mf','dur','dd','st','ef','cf','litterDepth','litterCover']);
 document.addEventListener('input',e=>{if(!ids.has(e.target.id))return;e.stopImmediatePropagation();calc()},true);
 ['lat','lon','dt'].forEach(i=>el(i).addEventListener('input',()=>{
  H=null;ENV=null;sel=-1;
