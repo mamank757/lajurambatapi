@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#f4f5f1" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0e100e" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.json">
 <title>Laju Rambat Api Pembakaran Jerami</title>
 <style>
 /* === VARIABEL WARNA & TEMA === */
@@ -127,7 +128,7 @@ td:first-child, th:first-child { text-align: left; }
     <label>Elevasi (m dpl)<input id="elev" type="number" step="0.1" value="0" readonly></label>
     <label>Jarak Sampel DEM (m)<input id="dem_dist" type="number" step="10" min="10" max="500" value="50"></label>
     <label>Kemiringan / Slope (°)<input id="slope" type="number" step="0.1" min="0" max="60" value="0"></label>
-    <label>Arah Tanjakan / Upslope (°)<input id="aspect" type="number" step="1" min="0" max="360" value="0"></label>
+    <label>Arah Tanjakan / Upslope (°)<input id="aspect" type="number" step="1" min="0" max="360" value="0"><small id="aspectL" style="color:var(--bar); font-weight:600; margin-top:2px;"></small></label>
     <label class="full">Tanggal & Waktu Setempat<input id="dt" type="datetime-local"></label>
   </div>
   <div class="row">
@@ -141,7 +142,7 @@ td:first-child, th:first-child { text-align: left; }
   <h2>2. Cuaca & Bahan Bakar</h2>
   <div class="g">
     <label>Kecepatan angin (m/s)<input id="w" type="number" step="0.1" min="0" inputmode="decimal" value="3"></label>
-    <label>Arah angin datang (°)<input id="wd" type="number" step="1" min="0" max="360" inputmode="decimal" value="90"></label>
+    <label>Arah angin datang (°)<input id="wd" type="number" step="1" min="0" max="360" inputmode="decimal" value="90"><small id="wdl" style="color:var(--bar); font-weight:600; margin-top:2px;"></small></label>
     <label>Suhu udara (°C)<input id="t" type="number" step="0.1" value="32"></label>
     <label>Kelembapan udara (%)<input id="rh" type="number" step="1" min="0" max="100" inputmode="decimal" value="60"></label>
     <label>Muatan cacahan (kg/m²)<input id="w0" type="number" step="0.01" min="0.001" inputmode="decimal" value="0.6"></label>
@@ -206,7 +207,7 @@ td:first-child, th:first-child { text-align: left; }
 </section>
 
 <section>
-  <h2>Laju Rambat Api per Jam</h2>
+  <h2>Laju Rambat per Jam</h2>
   <div class="sc" id="ch"></div>
 </section>
 
@@ -253,7 +254,7 @@ function ros(T,RH,U10,F,P){
   else if(RH<50) emc=2.22749+0.160107*RH-0.014784*Tf;
   else emc=21.0606+0.005565*RH*RH-0.00035*RH*Tf-0.483199*RH;
   
-  emc=emc*1.12; // Koreksi jerami padi
+  emc=emc*1.12;
 
   const Mf=P.mfBlank?Math.max(0.03,emc/100):P.mf, Mx=P.mx/100;
   const s=P.sigma*FT, ST=P.st/100, Se=P.se/100;
@@ -273,11 +274,9 @@ function ros(T,RH,U10,F,P){
   const ratio_corr=Math.min(Math.max(ratio,0.15),4.0);
   const phiW=IR>0?C*Math.pow(eff,B)*Math.pow(ratio_corr,-E):0;
   
-  // Faktor Lereng (Rothermel Eq 52)
   const tanSlope = Math.tan(P.slope * Math.PI / 180);
   const phiS = 5.275 * Math.pow(ratio_corr, -0.3) * Math.pow(tanSlope, 2);
   
-  // Penjumlahan Vektor: Angin + Lereng
   const windBlowingTo = (P.wd + 180) % 360;
   const radW = windBlowingTo * Math.PI / 180;
   const radS = P.aspect * Math.PI / 180;
@@ -340,7 +339,6 @@ function renderProfile(F){
 
 function renderMap(o,P,F){
   const box=$('dg'), d=P.dd, dur=P.dur;
-  // Rotasi map disesuaikan arah vektor netto
   const rot=o.spreadDir-90;
   $('dgl').textContent=`Tampak Atas. Arah rambat netto: ${f(o.spreadDir,1)}° (${compass(o.spreadDir)}). Titik pusat = titik nyala.`;
   if(!(o.R>0)){box.innerHTML='<p class="mut">Api tidak merambat pada kondisi ini.</p>'; return}
@@ -405,7 +403,6 @@ function renderHourly(F,P){
   const n=H.time.length, d=[];
   for(let i=0;i<n;i++){
     const T=H.temperature_2m[i], r=H.relative_humidity_2m[i], w=H.wind_speed_10m[i];
-    // Konversi m/mnt ke m/jam dengan dikali 60
     d.push(T==null||r==null||w==null?null:ros(T,r,w,F,P).R * 60);
   }
   
@@ -413,15 +410,11 @@ function renderHourly(F,P){
   if(!vals.length){box.innerHTML='<p class="mut">Input cuaca tidak valid.</p>'; return}
   
   const mx=Math.max(1e-6,...vals), W=340, Ht=140, l=44, bw=(W-l)/n, top=20;
-  // Jika laju < 10 m/jam pakai 1 desimal. Jika lebih, bulatkan tanpa koma
   const dec = mx < 10 ? 1 : 0; 
   
   let s=`<svg viewBox="0 0 ${W} ${Ht+26}" role="img">`;
-  
-  // Label Satuan
   s+=`<text x="${l}" y="10" font-size="10" font-weight="600" fill="var(--mut)">Laju (m/jam)</text>`;
   
-  // Menggunakan skala 0, 0.5 (tengah), dan 1 (puncak) agar rentang nilai mudah dibaca
   [0, 0.5, 1].forEach(p=>{
     const y=top+(1-p)*(Ht-top);
     s+=`<path d="M${l} ${y}H${W}" stroke="var(--ln)" stroke-dasharray="2 4"/>`;
@@ -449,13 +442,18 @@ function calc(){
   const F=fuel(), P=readP();
   renderProfile(F);
   const T=num('t'), RH=num('rh'), U=num('w');
+  
+  // Tampilkan label mata angin dinamis
+  if($('wdl'))$('wdl').textContent = fin(num('wd')) ? `Arah: ${compass(num('wd'))}` : '';
+  if($('aspectL'))$('aspectL').textContent = fin(num('aspect')) ? `Arah: ${compass(num('aspect'))}` : '';
+
   const err=P.err||(!F.ok?'Periksa variabel bahan bakar.':'')||(wxBad(T,RH,U)?'Periksa suhu, RH, dan angin.':'');
   if(err){blank(err); return}
   const o=ros(T,RH,U,F,P);
   if(!fin(o.R)){blank('Kalkulasi gagal dengan input tersebut.'); return}
   
   const fl=0.0775*Math.pow(Math.max(0,o.I),0.46);
-  const fl_cm = fl * 100; // Konversi m ke cm
+  const fl_cm = fl * 100;
   
   $('r').textContent=f(o.R,2); $('rS').textContent=f(o.R,2);$('fl').textContent=f(fl_cm,1); $('flS').textContent=f(fl_cm,1);$('ii').textContent=f(o.I,0); $('iiS').textContent=f(o.I,0);$('mm').textContent=f(o.Mf*100,1)+'%';
   $('r0').textContent=f(o.R0,2);$('wf').textContent='×'+f(1+o.phiNet,2);
@@ -524,7 +522,6 @@ async function go(){
     
     if(wRes.error) throw new Error(wRes.reason||'Ditolak server cuaca');
     
-    // Set Topografi
     $('elev').value = tData.elev.toFixed(1);
     $('slope').value = tData.slope.toFixed(1);$('aspect').value = Math.round(tData.aspect);
     
@@ -565,6 +562,13 @@ document.querySelectorAll('main input, main select').forEach(el=>{
 const n0=new Date(); n0.setMinutes(0,0,0);
 $('dt').value=new Date(n0-n0.getTimezoneOffset()*6e4).toISOString().slice(0,16);
 calc();
+
+/* Registration Service Worker untuk PWA */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
 </script>
 </body>
 </html>
