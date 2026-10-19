@@ -52,7 +52,18 @@ table{border-collapse:collapse;width:100%;min-width:480px;font-size:.8rem}th,td{
 <h2>2. Variabel model</h2>
 <div class="g">
 <label>Kecepatan angin 10 m (m/s)<input id="w" type="number" step="0.1" min="0" value="3"></label>
-<label>Arah angin (dari, °)<input id="wdir" type="number" step="1" min="0" max="360" value="90"></label>
+<label>Arah angin (dari mana)
+  <select id="wdir">
+    <option value="0">Utara</option>
+    <option value="45">Timur Laut</option>
+    <option value="90" selected>Timur</option>
+    <option value="135">Tenggara</option>
+    <option value="180">Selatan</option>
+    <option value="225">Barat Daya</option>
+    <option value="270">Barat</option>
+    <option value="315">Barat Laut</option>
+  </select>
+</label>
 <label>Suhu udara (°C)<input id="t" type="number" step="0.1" value="32"></label>
 <label>Kelembapan udara (%)<input id="rh" type="number" step="1" min="1" max="100" value="60"></label>
 <label style="grid-column:1/-1">Kerapatan jerami Tapin: <b id="rv">8</b> kg/m³<input id="rho" type="range" min="1" max="40" step="0.5" value="8"></label>
@@ -95,7 +106,7 @@ table{border-collapse:collapse;width:100%;min-width:480px;font-size:.8rem}th,td{
 <label>Jarak penerima dari tepi depan api (m)<input id="dd" type="number" min="5" step="5" value="100"></label>
 <label style="grid-column:1/-1">Kelas stabilitas atmosfer<select id="st"><option value="">Otomatis dari radiasi, awan, dan angin</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option></select></label>
 </div>
-<p id="dg_label" style="margin:14px 0 4px;font-size:.85rem;color:var(--mut)">Perluasan area terbakar, tampak atas (angin ke kanan, titik hitam = titik sulut)</p>
+<p id="dg_label" style="margin:14px 0 4px;font-size:.85rem;color:var(--mut)">Perluasan area terbakar, tampak atas (angin dari Timur meniup ke Barat, titik hitam = titik sulut)</p>
 <div class="sc" id="dg"></div>
 <div class="sc" style="margin-top:12px"><table id="tb"></table></div>
 <p style="margin:14px 0 4px;font-size:.85rem;color:var(--mut)">Kenaikan CO₂ di atas latar searah angin, menurut jarak dari tepi depan api</p>
@@ -118,6 +129,8 @@ table{border-collapse:collapse;width:100%;min-width:480px;font-size:.8rem}th,td{
 const $=id=>document.getElementById(id),RP=400,HC=6449,HK=15000;
 let H=null,sel=-1,ENV=null;
 const v=id=>parseFloat($(id).value);
+const COMPASS_NAMES = ['Utara', 'Timur Laut', 'Timur', 'Tenggara', 'Selatan', 'Barat Daya', 'Barat', 'Barat Laut'];
+
 function ros(T,RH,U10,rho){
  const Tf=T*1.8+32,h=RH;let e;
  if(h<10)e=0.03229+0.281073*h-0.000578*h*Tf;else if(h<50)e=2.22749+0.160107*h-0.014784*Tf;else e=21.0606+0.005565*h*h-0.00035*h*Tf-0.483199*h;
@@ -161,8 +174,12 @@ async function go(){
   H=j.hourly;sel=Math.min(23,+dt.slice(11,13));ENV={sw:H.shortwave_radiation&&H.shortwave_radiation[sel],cc:H.cloud_cover&&H.cloud_cover[sel]};
   const t=H.temperature_2m[sel],h=H.relative_humidity_2m[sel],w=H.wind_speed_10m[sel],wd=H.wind_direction_10m[sel];
   if(t==null||h==null||w==null||wd==null)throw new Error('Data jam itu belum tersedia');
-  $('t').value=t;$('rh').value=h;$('w').value=w;$('wdir').value=wd;
-  msg(`Data ${H.time[sel].replace('T',' ')} (${j.timezone_abbreviation}): ${t} °C, RH ${h}%, angin ${w} m/s dari arah ${wd}°.`);calc();
+  
+  const closestDeg = (Math.round(wd / 45) * 45) % 360;
+  const compassIdx = Math.round(closestDeg / 45) % 8;
+  
+  $('t').value=t;$('rh').value=h;$('w').value=w;$('wdir').value=closestDeg;
+  msg(`Data ${H.time[sel].replace('T',' ')} (${j.timezone_abbreviation}): ${t} °C, RH ${h}%, angin ${w} m/s dari arah ${COMPASS_NAMES[compassIdx]}.`);calc();
  }catch(e){msg('Gagal mengambil data: '+e.message+'. Isi suhu, kelembapan, dan angin secara manual.')}
 }
 $('gps').onclick=()=>{
@@ -296,12 +313,13 @@ render4=function(o,T,U){
  if(U<0.5)el('cg').innerHTML='<p style="color:var(--mut)">Konsentrasi tidak dihitung: angin di bawah 0,5 m/s.</p>';
  el('nt2').textContent=`Kelas stabilitas ${cls}. Emisi sesaat = 2M/t untuk pertumbuhan luas kuadratik.`+(o.windLimited?' Angin efektif dibatasi oleh batas empiris Rothermel. ':'');
  
- // Logika Label Arah Angin Dinamis
  const wd = number('wdir');
- const toDir = (wd + 180) % 360; 
- const dirs = ['Utara', 'Timur Laut', 'Timur', 'Tenggara', 'Selatan', 'Barat Daya', 'Barat', 'Barat Laut'];
- const dirName = dirs[Math.round(toDir / 45) % 8];
- el('dg_label').textContent = `Perluasan area terbakar, tampak atas (angin meniup ke arah ${dirName}, titik hitam = titik sulut)`;
+ const fromIdx = Math.round(wd / 45) % 8;
+ const toIdx = (fromIdx + 4) % 8;
+ const fromDirName = COMPASS_NAMES[fromIdx];
+ const toDirName = COMPASS_NAMES[toIdx];
+ 
+ el('dg_label').textContent = `Perluasan area terbakar, tampak atas (angin dari ${fromDirName} meniup ke ${toDirName}, titik hitam = titik sulut)`;
  
  if(!(o.R>0)) { el('dg').innerHTML=''; el('cg').innerHTML=''; return; }
  const F=fire(o,dur);
