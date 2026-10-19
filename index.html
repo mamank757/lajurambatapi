@@ -9,17 +9,17 @@
 <style>
 /* === VARIABEL WARNA & TEMA === */
 :root {
-  --bg: #f4f5f1;        /* Latar utama, off-white / kertas */
-  --card: #ffffff;      /* Latar kartu */
-  --ink: #1a1e1b;       /* Teks utama, hitam kehijauan */
-  --mut: #636b60;       /* Teks sekunder / muted */
-  --ln: #d4d8d0;        /* Garis batas */
-  --bar: #587246;       /* Hijau sage/pertanian */
-  --bar-dim: #e1e6db;   /* Hijau transparan untuk latar input */
-  --em: #d14924;        /* Merah bata/api untuk peringatan/hasil */
-  --warn: #fff7e6;      /* Latar peringatan */
-  --warn-ln: #e8bd6d;   /* Garis peringatan */
-  --rad: 14px;          /* Radius utama */
+  --bg: #f4f5f1;
+  --card: #ffffff;
+  --ink: #1a1e1b;
+  --mut: #636b60;
+  --ln: #d4d8d0;
+  --bar: #587246;
+  --bar-dim: #e1e6db;
+  --em: #d14924;
+  --warn: #fff7e6;
+  --warn-ln: #e8bd6d;
+  --rad: 14px;
   color-scheme: light;
 }
 
@@ -39,197 +39,56 @@
   }
 }
 
-/* === RESET & BASE === */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
-body {
-  background: var(--bg);
-  color: var(--ink);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-}
+body { background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, sans-serif; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+main { max-width: 680px; margin: 0 auto; padding: 16px 16px 80px; }
 
-main {
-  max-width: 680px;
-  margin: 0 auto;
-  padding: 16px 16px 80px;
-}
-
-/* === TYPOGRAPHY === */
-h1, h2, .big, .k b {
-  font-family: "Iowan Old Style", "Sitka Text", Georgia, serif;
-}
+h1, h2, .big, .k b { font-family: "Iowan Old Style", "Sitka Text", Georgia, serif; }
 h1 { font-size: 1.7rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; margin-bottom: 6px; }
-h2 { 
-  font-size: 1.15rem; 
-  font-weight: 600; 
-  margin-bottom: 16px; 
-  display: flex; 
-  align-items: center;
-  border-bottom: 1px solid var(--ln);
-  padding-bottom: 8px;
-}
-h2::before {
-  content: "";
-  display: inline-block;
-  width: 4px;
-  height: 18px;
-  background: var(--bar);
-  margin-right: 10px;
-  border-radius: 4px;
-}
+h2 { font-size: 1.15rem; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; border-bottom: 1px solid var(--ln); padding-bottom: 8px; }
+h2::before { content: ""; display: inline-block; width: 4px; height: 18px; background: var(--bar); margin-right: 10px; border-radius: 4px; }
 p.sub { font-size: 0.95rem; color: var(--mut); margin-bottom: 24px; }
 p.cap { font-size: 0.85rem; color: var(--mut); margin: 16px 0 8px; line-height: 1.4; }
 
-/* === LAYOUT & CARD === */
-section {
-  background: var(--card);
-  border: 1px solid var(--ln);
-  border-radius: var(--rad);
-  padding: 20px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.02);
-}
-
+section { background: var(--card); border: 1px solid var(--ln); border-radius: var(--rad); padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.02); }
 .g { display: grid; grid-template-columns: 1fr; gap: 14px; }
 @media(min-width: 480px) { .g { grid-template-columns: 1fr 1fr; gap: 16px; } }
 .g .full { grid-column: 1 / -1; }
 
-/* === FORMS === */
-label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--ink);
-}
+label { display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; font-weight: 500; color: var(--ink); }
 label small { font-size: 0.8rem; font-weight: 400; color: var(--mut); line-height: 1.3; }
+input, select { width: 100%; appearance: none; background: var(--bg); border: 1px solid var(--ln); border-radius: 8px; padding: 12px 14px; font-family: inherit; font-size: 1rem; color: var(--ink); transition: all 0.2s; }
+input:focus, select:focus { outline: none; border-color: var(--bar); background: var(--card); box-shadow: 0 0 0 3px var(--bar-dim); }
+input[readonly] { background: var(--bar-dim); color: var(--mut); cursor: not-allowed; }
 
-input, select {
-  width: 100%;
-  appearance: none;
-  background: var(--bg);
-  border: 1px solid var(--ln);
-  border-radius: 8px;
-  padding: 12px 14px;
-  font-family: inherit;
-  font-size: 1rem; /* Mencegah zoom di iOS */
-  color: var(--ink);
-  transition: all 0.2s ease;
-}
-input:focus, select:focus {
-  outline: none;
-  border-color: var(--bar);
-  background: var(--card);
-  box-shadow: 0 0 0 3px var(--bar-dim);
-}
-
-/* === BUTTONS === */
 .row { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
 @media(min-width: 480px) { .row { flex-direction: row; } }
-button {
-  flex: 1;
-  background: var(--bar);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 14px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: transform 0.1s, opacity 0.2s;
-}
+button { flex: 1; background: var(--bar); color: #fff; border: none; border-radius: 8px; padding: 14px; font-size: 1rem; font-weight: 600; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: transform 0.1s, opacity 0.2s; }
 button:active { transform: scale(0.97); }
 button:disabled { opacity: 0.6; cursor: not-allowed; }
-button.o {
-  background: var(--card);
-  color: var(--ink);
-  border: 1px solid var(--ln);
-}
+button.o { background: var(--card); color: var(--ink); border: 1px solid var(--ln); }
 
-/* === STICKY TOP BAR === */
-.bar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: rgba(244, 245, 241, 0.85); /* fallback */
-  background: color-mix(in srgb, var(--card) 85%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--ln);
-  padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-  justify-content: space-between;
-  font-size: 0.85rem;
-  color: var(--mut);
-}
+.bar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--card) 85%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--ln); padding: calc(10px + env(safe-area-inset-top)) 16px 10px; display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; font-size: 0.85rem; color: var(--mut); }
 .bar span { display: flex; align-items: baseline; gap: 4px; }
 .bar b { color: var(--em); font-size: 1.15rem; font-weight: 700; }
 
-/* === RESULTS DASHBOARD === */
 .big { font-size: 3rem; font-weight: 700; color: var(--em); line-height: 1; margin-bottom: 8px; }
 .big small { font-family: system-ui, sans-serif; font-size: 1.1rem; font-weight: 500; color: var(--mut); }
-
-.k {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  margin-top: 16px;
-}
+.k { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 16px; }
 @media(min-width: 480px) { .k { grid-template-columns: repeat(3, 1fr); } }
-.k div {
-  background: var(--bg);
-  border: 1px solid var(--ln);
-  border-radius: 8px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  font-size: 0.8rem;
-  color: var(--mut);
-}
+.k div { background: var(--bg); border: 1px solid var(--ln); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; font-size: 0.8rem; color: var(--mut); }
 .k b { font-size: 1.3rem; color: var(--ink); display: block; margin-bottom: 2px; line-height: 1.1; }
 
 #msg { margin-top: 12px; font-size: 0.9rem; color: var(--mut); min-height: 1.3em; }
-.w {
-  margin: 16px 0 0;
-  padding: 12px 14px;
-  background: var(--warn);
-  border-left: 4px solid var(--warn-ln);
-  border-radius: 0 8px 8px 0;
-  font-size: 0.9rem;
-  color: var(--ink);
-}
+.w { margin: 16px 0 0; padding: 12px 14px; background: var(--warn); border-left: 4px solid var(--warn-ln); border-radius: 0 8px 8px 0; font-size: 0.9rem; color: var(--ink); }
 
-/* === ACCORDION === */
-details {
-  background: var(--bg);
-  border: 1px solid var(--ln);
-  border-radius: 8px;
-  padding: 14px;
-  margin-top: 16px;
-}
-summary {
-  font-weight: 600;
-  color: var(--ink);
-  cursor: pointer;
-  list-style: none;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+details { background: var(--bg); border: 1px solid var(--ln); border-radius: 8px; padding: 14px; margin-top: 16px; }
+summary { font-weight: 600; color: var(--ink); cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; }
 summary::-webkit-details-marker { display: none; }
 summary::after { content: "+"; font-size: 1.2rem; color: var(--bar); font-weight: 400; }
 details[open] summary::after { content: "−"; }
 
-/* === TABEL MOBILE-FRIENDLY === */
 .sc { width: 100%; overflow-x: auto; margin-top: 8px; }
 .sc svg { display: block; width: 100%; max-width: 520px; height: auto; margin: 0 auto; }
 table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
@@ -238,34 +97,12 @@ th { color: var(--mut); font-weight: 600; white-space: nowrap; }
 td:first-child, th:first-child { text-align: left; }
 
 @media(max-width: 560px) {
-  #tb, #tb tbody { display: block; }
-  #tb thead { display: none; }
-  #tb tr {
-    display: flex;
-    flex-direction: column;
-    background: var(--bg);
-    border: 1px solid var(--ln);
-    border-radius: 10px;
-    padding: 12px 16px;
-    margin-bottom: 12px;
-  }
-  #tb td {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 0;
-    border-bottom: 1px dashed var(--ln);
-  }
+  #tb, #tb tbody { display: block; } #tb thead { display: none; }
+  #tb tr { display: flex; flex-direction: column; background: var(--bg); border: 1px solid var(--ln); border-radius: 10px; padding: 12px 16px; margin-bottom: 12px; }
+  #tb td { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px dashed var(--ln); }
   #tb td:last-child { border-bottom: none; }
   #tb td::before { content: attr(data-l); color: var(--mut); font-weight: 500; }
-  #tb td:first-child {
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--bar);
-    border-bottom: 1px solid var(--ln);
-    padding-bottom: 8px;
-    margin-bottom: 4px;
-  }
+  #tb td:first-child { font-size: 1.05rem; font-weight: 700; color: var(--bar); border-bottom: 1px solid var(--ln); padding-bottom: 8px; margin-bottom: 4px; }
   #tb td:first-child::before { content: none; }
 }
 </style>
@@ -282,46 +119,49 @@ td:first-child, th:first-child { text-align: left; }
 <p class="sub">Estimasi rambatan api untuk lapisan cacahan jerami padi pasca panen (Model Rothermel dikalibrasi).</p>
 
 <section>
-  <h2>1. Lokasi & Waktu</h2>
+  <h2>1. Lokasi & Topografi</h2>
   <div class="g">
     <label>Lintang<input id="lat" type="number" step="any" value="-2.93" autocomplete="off"></label>
     <label>Bujur<input id="lon" type="number" step="any" value="115.00" autocomplete="off"></label>
+    <label>Elevasi (m dpl)<input id="elev" type="number" step="0.1" value="0" readonly></label>
+    <label>Jarak Sampel DEM (m)<input id="dem_dist" type="number" step="10" min="10" max="500" value="50"></label>
+    <label>Kemiringan / Slope (°)<input id="slope" type="number" step="0.1" min="0" max="60" value="0"></label>
+    <label>Arah Tanjakan / Upslope (°)<input id="aspect" type="number" step="1" min="0" max="360" value="0"></label>
     <label class="full">Tanggal & Waktu Setempat<input id="dt" type="datetime-local"></label>
   </div>
   <div class="row">
-    <button class="o" id="gps" type="button">Gunakan Lokasi Saat Ini</button>
-    <button id="go" type="button">Ambil Data Cuaca & Hitung</button>
+    <button class="o" id="gps" type="button">Lokasi GPS</button>
+    <button id="go" type="button">Ambil Cuaca & DEM Elevasi</button>
   </div>
   <div id="msg"></div>
 </section>
 
 <section>
-  <h2>2. Kondisi Lingkungan & Bahan Bakar</h2>
+  <h2>2. Cuaca & Bahan Bakar</h2>
   <div class="g">
     <label>Kecepatan angin (m/s)<input id="w" type="number" step="0.1" min="0" inputmode="decimal" value="3"></label>
-    <label>Arah angin datang (°; 0=Utara, 90=Timur)<input id="wd" type="number" step="1" min="0" max="360" inputmode="decimal" value="90"><small id="wdl"></small></label>
+    <label>Arah angin datang (°)<input id="wd" type="number" step="1" min="0" max="360" inputmode="decimal" value="90"></label>
     <label>Suhu udara (°C)<input id="t" type="number" step="0.1" value="32"></label>
     <label>Kelembapan udara (%)<input id="rh" type="number" step="1" min="0" max="100" inputmode="decimal" value="60"></label>
-    <label>Muatan cacahan rata-rata (kg/m²)<input id="w0" type="number" step="0.01" min="0.001" inputmode="decimal" value="0.6"></label>
-    <label>Ketebalan lapisan cacahan (cm)<input id="depth" type="number" step="0.1" min="0.1" inputmode="decimal" value="3"></label>
+    <label>Muatan cacahan (kg/m²)<input id="w0" type="number" step="0.01" min="0.001" inputmode="decimal" value="0.6"></label>
+    <label>Ketebalan hamparan (cm)<input id="depth" type="number" step="0.1" min="0.1" inputmode="decimal" value="3"></label>
     <label class="full">Tutupan hamparan (%)<input id="cover" type="number" step="1" min="1" max="100" inputmode="decimal" value="50"></label>
   </div>
-  <p class="cap" style="margin-bottom:0">Kerapatan ekuivalen: <b id="rhoV" style="color:var(--ink)">–</b> kg/m³ (muatan ÷ tebal)</p>
   
   <details>
-    <summary>Parameter Lanjutan (Kalibrasi Jerami Padi)</summary>
+    <summary>Parameter Lanjutan (Kalibrasi Jerami)</summary>
     <div class="g" style="margin-top:12px">
-      <label>Faktor reduksi angin (10m ke nyala)<input id="waf" type="number" step="0.01" min="0.01" max="1" inputmode="decimal" value="0.45"><small>Sawah terbuka: 0.40–0.50</small></label>
-      <label>Rasio luas permukaan (m⁻¹)<input id="sigma" type="number" step="100" min="500" max="20000" inputmode="decimal" value="8000"></label>
-      <label>Kadar air cacahan (%)<input id="mf" type="number" step="0.5" min="0" max="100" inputmode="decimal" value=""><small>Kosongkan = otomatis dari Suhu & RH</small></label>
-      <label>Kadar air ekstingsi (%)<input id="mx" type="number" step="1" min="5" max="60" inputmode="decimal" value="20"><small>Jerami tinggi silika padam di ~20%</small></label>
-      <label>Kerapatan partikel (kg/m³)<input id="rp" type="number" step="10" min="100" max="1000" inputmode="decimal" value="400"></label>
-      <label>Kalor pembakaran (kJ/kg)<input id="hc" type="number" step="100" min="10000" max="25000" inputmode="decimal" value="17000"><small>Jerami ~17.000 kJ/kg</small></label>
-      <label>Mineral total (%)<input id="st" type="number" step="0.05" min="0" max="30" inputmode="decimal" value="14.0"><small>Kaya silika (12–18%)</small></label>
-      <label>Mineral efektif non-silika (%)<input id="se" type="number" step="0.05" min="0.01" max="10" inputmode="decimal" value="2.0"></label>
-      <label>Fraksi terbakar<input id="cf" type="number" step="0.05" min="0" max="1" inputmode="decimal" value="0.8"></label>
-      <label>Faktor emisi CO₂ (g/kg)<input id="ef" type="number" step="10" min="1" max="5000" inputmode="decimal" value="1460"></label>
-      <label class="full">CO₂ latar (ppm)<input id="bg" type="number" step="1" min="100" max="1000" inputmode="decimal" value="430"></label>
+      <label>Faktor reduksi angin<input id="waf" type="number" step="0.01" min="0.01" max="1" value="0.45"></label>
+      <label>Rasio luas permukaan (m⁻¹)<input id="sigma" type="number" step="100" min="500" max="20000" value="8000"></label>
+      <label>Kadar air cacahan (%)<input id="mf" type="number" step="0.5" min="0" max="100" value=""><small>Kosongkan = otomatis</small></label>
+      <label>Kadar air ekstingsi (%)<input id="mx" type="number" step="1" min="5" max="60" value="20"></label>
+      <label>Kerapatan partikel (kg/m³)<input id="rp" type="number" step="10" min="100" max="1000" value="400"></label>
+      <label>Kalor pembakaran (kJ/kg)<input id="hc" type="number" step="100" min="10000" max="25000" value="17000"></label>
+      <label>Mineral total (%)<input id="st" type="number" step="0.05" min="0" max="30" value="14.0"></label>
+      <label>Mineral efektif (%)<input id="se" type="number" step="0.05" min="0.01" max="10" value="2.0"></label>
+      <label>Fraksi terbakar<input id="cf" type="number" step="0.05" min="0" max="1" value="0.8"></label>
+      <label>Faktor emisi CO₂ (g/kg)<input id="ef" type="number" step="10" min="1" max="5000" value="1460"></label>
+      <label class="full">CO₂ latar (ppm)<input id="bg" type="number" step="1" min="100" max="1000" value="430"></label>
     </div>
   </details>
 </section>
@@ -330,49 +170,42 @@ td:first-child, th:first-child { text-align: left; }
   <h2>3. Hasil Pemodelan</h2>
   <div class="big"><span id="r">–</span> <small>m/menit</small></div>
   <div class="k">
-    <div><b id="rh2">–</b>Laju m/jam</div>
+    <div><b id="dirS">–</b>Arah Rambat Netto</div>
     <div><b id="fl">–</b>Panjang nyala (m)</div>
     <div><b id="ii">–</b>Intensitas (kW/m)</div>
     <div><b id="mm">–</b>Kadar air cacahan</div>
-    <div><b id="r0">–</b>Laju tanpa angin</div>
-    <div><b id="wf">–</b>Faktor angin (φw)</div>
+    <div><b id="r0">–</b>Laju dasar (m/mnt)</div>
+    <div><b id="wf">–</b>Faktor Pengganda (φ)</div>
     <div><b id="ir">–</b>Intensitas reaksi</div>
     <div><b id="br">–</b>Rasio pemadatan</div>
     <div><b id="dp">–</b>Tebal hamparan</div>
-    <div><b id="rx">–</b>Muatan area tertutup</div>
-    <div><b id="ar">–</b>Tutupan cacahan</div>
-    <div><b id="rhd">–</b>Kerapatan ekuivalen</div>
   </div>
   <div id="wn"></div>
   <p id="nt" class="cap"></p>
-  <p class="cap" style="margin-top:20px; font-weight:500;">Penampang Skematis Lapisan Cacahan</p>
   <div class="sc" id="fuelProfile"></div>
 </section>
 
 <section>
   <h2>4. Perluasan & Emisi CO₂</h2>
   <div class="g">
-    <label>Durasi pengamatan (menit)<input id="dur" type="number" min="10" step="10" inputmode="decimal" value="120"></label>
-    <label>Jarak penerima dari ujung api (m)<input id="dd" type="number" min="1" step="5" inputmode="decimal" value="100"></label>
+    <label>Durasi pengamatan (menit)<input id="dur" type="number" min="10" step="10" value="120"></label>
+    <label>Jarak penerima dari api (m)<input id="dd" type="number" min="1" step="5" value="100"></label>
     <label class="full">Stabilitas Atmosfer<select id="stab">
       <option value="">Otomatis berdasar radiasi/angin</option>
       <option>A</option><option>B</option><option>C</option>
       <option>D</option><option>E</option><option>F</option>
     </select></label>
   </div>
-  
   <p id="dgl" class="cap" style="margin-top:20px; font-weight:500;">Perluasan area terbakar (Tampak Atas)</p>
   <div class="sc" id="dg"></div>
-  
   <div class="sc" style="margin-top:16px"><table id="tb"></table></div>
-  
-  <p class="cap" style="margin-top:24px; font-weight:500;">Kenaikan CO₂ searah angin berdasar jarak (Logaritmik)</p>
+  <p class="cap" style="margin-top:24px; font-weight:500;">Kenaikan CO₂ searah laju api (Logaritmik)</p>
   <div class="sc" id="cg"></div>
   <p id="nt2" class="cap"></p>
 </section>
 
 <section>
-  <h2>Laju Rambat per Jam (Hari Terpilih)</h2>
+  <h2>Laju Rambat per Jam</h2>
   <div class="sc" id="ch"></div>
 </section>
 
@@ -398,7 +231,7 @@ function fuel(){
 }
 function readP(){
   const P={err:''};
-  const spec=[['waf',.01,1],['sigma',500,20000],['mx',5,60],['rp',100,1000],['hc',10000,25000],['st',0,30],['se',.01,10],['cf',0,1],['ef',1,5000],['bg',100,1000],['dur',10,1e5],['dd',1,1e5],['wd',0,360]];
+  const spec=[['waf',.01,1],['sigma',500,20000],['mx',5,60],['rp',100,1000],['hc',10000,25000],['st',0,30],['se',.01,10],['cf',0,1],['ef',1,5000],['bg',100,1000],['dur',10,1e5],['dd',1,1e5],['wd',0,360],['slope',0,90],['aspect',0,360]];
   for(const[id,lo,hi]of spec){
     const x=num(id); P[id]=x;
     if(!P.err&&(!fin(x)||x<lo||x>hi)) P.err=`Nilai "${lab(id)}" harus antara ${lo} dan ${hi}.`;
@@ -410,9 +243,9 @@ function readP(){
 }
 const wxBad=(T,RH,U)=>![T,RH,U].every(fin)||T<-60||T>70||RH<0||RH>100||U<0;
 
-/* ---------- Model Rothermel ---------- */
+/* ---------- Model Rothermel dengan Vektor Lereng ---------- */
 function ros(T,RH,U10,F,P){
-  const bad={R:NaN,R0:NaN,Rl:NaN,Mf:NaN,I:NaN,IR:NaN,phi:NaN,ratio:NaN,mid:NaN,lim:false,dead:false};
+  const bad={R:NaN,R0:NaN,Rl:NaN,Mf:NaN,I:NaN,IR:NaN,phiNet:NaN,spreadDir:NaN,ratio:NaN,mid:NaN,lim:false,dead:false};
   if(P.err||!F.ok||wxBad(T,RH,U10)) return bad;
   const Tf=T*1.8+32; let emc;
   if(RH<10) emc=0.03229+0.281073*RH-0.000578*RH*Tf;
@@ -437,12 +270,28 @@ function ros(T,RH,U10,F,P){
   const req=U10*P.waf*FPM, lim=0.9*IR, eff=Math.min(req,lim);
   
   const ratio_corr=Math.min(Math.max(ratio,0.15),4.0);
-  const phi=IR>0?C*Math.pow(eff,B)*Math.pow(ratio_corr,-E):0;
+  const phiW=IR>0?C*Math.pow(eff,B)*Math.pow(ratio_corr,-E):0;
   
+  // Faktor Lereng (Rothermel Eq 52)
+  const tanSlope = Math.tan(P.slope * Math.PI / 180);
+  const phiS = 5.275 * Math.pow(ratio_corr, -0.3) * Math.pow(tanSlope, 2);
+  
+  // Penjumlahan Vektor: Angin + Lereng
+  const windBlowingTo = (P.wd + 180) % 360;
+  const radW = windBlowingTo * Math.PI / 180;
+  const radS = P.aspect * Math.PI / 180;
+  
+  const phiX = phiW * Math.sin(radW) + phiS * Math.sin(radS);
+  const phiY = phiW * Math.cos(radW) + phiS * Math.cos(radS);
+  
+  const phiNet = Math.hypot(phiX, phiY);
+  const spreadDir = phiNet > 0 ? (Math.atan2(phiX, phiY) * 180 / Math.PI + 360) % 360 : windBlowingTo;
+
   const bulk=F.rho*0.062428;
-  const R0l=IR>0?IR*xi/(bulk*eps*Qig)*FT:0, Rl=R0l*(1+phi);
+  const R0l=IR>0?IR*xi/(bulk*eps*Qig)*FT:0, Rl=R0l*(1+phiNet);
   const I=P.hc*F.loc*P.cf*Rl/60;
-  return{R:Rl*F.cov, R0:R0l*F.cov, Rl, Mf, I, IR:IR*0.18927, phi, ratio, mid:eff/FPM, lim:IR>0&&req>lim, dead:Mf>=Mx};
+  
+  return{R:Rl*F.cov, R0:R0l*F.cov, Rl, Mf, I, IR:IR*0.18927, phiNet, spreadDir, ratio, mid:eff/FPM, lim:IR>0&&req>lim, dead:Mf>=Mx};
 }
 
 /* ---------- Bentuk api, emisi, sebaran ---------- */
@@ -477,22 +326,22 @@ function conc(M,t,xc,d,u,cls,T,b){
   return g/44.01*vm*1e6;
 }
 
-/* ---------- Visualisasi SVG (Diperbarui tampilannya) ---------- */
+/* ---------- Visualisasi SVG ---------- */
 function renderProfile(F){
   const box=$('fuelProfile');
-  if(!F.ok){box.innerHTML='<p class="mut">Periksa input bahan bakar.</p>'; return}
-  const gy=100, sc=70/Math.max(0.05,F.dep), lh=F.dep*sc, n=24, cw=316/n;
-  let s=`<svg viewBox="0 0 340 130" role="img" aria-label="Penampang lapisan cacahan"><path d="M12 ${gy}H328" stroke="var(--ln)" stroke-width="3" stroke-linecap="round"/>`;
+  if(!F.ok) return;
+  const gy=40, sc=20/Math.max(0.05,F.dep), lh=F.dep*sc, n=24, cw=316/n;
+  let s=`<svg viewBox="0 0 340 50" role="img"><path d="M12 ${gy}H328" stroke="var(--ln)" stroke-width="3" stroke-linecap="round"/>`;
   for(let i=0;i<n;i++) s+=`<rect x="${12+i*cw+1}" y="${gy-lh}" width="${cw*F.cov - 2}" height="${lh}" rx="2" fill="var(--bar)" fill-opacity=".75"/>`;
-  s+=`<text x="12" y="118" font-size="11" font-weight="500" fill="var(--mut)">Permukaan Tanah</text>`;
-  s+=`<text x="170" y="16" text-anchor="middle" font-size="12" font-weight="500" fill="var(--mut)">Tutupan ${f(F.cov*100,0)}%, tebal ${f(F.dep*100,1)} cm</text></svg>`;
+  s+=`</svg>`;
   box.innerHTML=s;
 }
 
 function renderMap(o,P,F){
   const box=$('dg'), d=P.dd, dur=P.dur;
-  const toB=(P.wd+180)%360, rot=toB-90;
-  $('dgl').textContent=`Tampak Atas (Utara di atas). Angin dari ${compass(P.wd)} meniup ke ${compass(toB)}; Titik pusat = titik nyala.`;
+  // Rotasi map disesuaikan arah vektor netto
+  const rot=o.spreadDir-90;
+  $('dgl').textContent=`Tampak Atas. Arah rambat netto: ${f(o.spreadDir,1)}° (${compass(o.spreadDir)}). Titik pusat = titik nyala.`;
   if(!(o.R>0)){box.innerHTML='<p class="mut">Api tidak merambat pada kondisi ini.</p>'; return}
   const q=fire(o,dur), xmin=-q.back, xmax=q.head+d;
   const rb=Math.max((xmax-xmin)/2,q.b)*1.1, sc=130/rb, cx=(xmax+xmin)/2;
@@ -508,40 +357,29 @@ function renderMap(o,P,F){
   s+=`<text transform="translate(${rx.toFixed(2)} 0) rotate(${(-rot).toFixed(2)})" y="-36" font-size="11" font-weight="500" text-anchor="middle" fill="var(--ink)">Penerima ${d}m</text>`;
   s+=`<circle cx="0" cy="0" r="4" fill="var(--ink)" stroke="var(--bg)" stroke-width="1.5"/></g>`;
   
-  // Wind Arrow
-  s+=`<g transform="translate(34 40) rotate(${rot.toFixed(2)})"><path d="M-18 0H18M10 -6L18 0L10 6" stroke="var(--mut)" stroke-width="2" stroke-linecap="round" fill="none"/></g><text x="34" y="66" text-anchor="middle" font-size="10" font-weight="600" fill="var(--mut)">ANGIN</text>`;
+  s+=`<g transform="translate(34 40) rotate(${rot.toFixed(2)})"><path d="M-18 0H18M10 -6L18 0L10 6" stroke="var(--mut)" stroke-width="2" stroke-linecap="round" fill="none"/></g><text x="34" y="66" text-anchor="middle" font-size="10" font-weight="600" fill="var(--mut)">RAMBAT</text>`;
   
-  // North Arrow
   s+=`<path d="M306 46V20M300 27L306 20L312 27" stroke="var(--mut)" stroke-width="2" stroke-linecap="round" fill="none"/><text x="306" y="62" text-anchor="middle" font-size="11" font-weight="600" fill="var(--mut)">U</text>`;
-  
-  // Scale
-  const nice=[10,20,50,100,200,500,1000,2000,5000,10000].filter(v=>v*sc<=100).pop();
-  if(nice){
-    const L=nice*sc;
-    s+=`<path d="M16 318h${L.toFixed(1)}M16 312v12M${(16+L).toFixed(1)} 312v12" stroke="var(--ink)" stroke-width="1.5" stroke-linecap="round"/>`;
-    s+=`<text x="${16+L/2}" y="306" font-size="11" font-weight="500" text-anchor="middle" fill="var(--ink)">Skala ${nice} m</text>`;
-  }
   box.innerHTML=s+'</svg>';
 }
 
 function renderTable(o,P,F,U,cls,T){
-  let rows='<thead><tr><th>Menit</th><th>Maju (m)</th><th>Radius Eq (m)</th><th>Luas Area</th><th>CO₂ Kumulatif (kg)</th><th>Emisi Sesaat (kg/m)</th><th>CO₂ Penerima (ppm)</th></tr></thead><tbody>';
-  for(let k=1;k<=8;k++){
-    const t=P.dur*k/8, q=fire(o,t), M=emis(q.A,F,P), ex=U>=0.5?conc(M,t,q.a,P.dd,U,cls,T,q.b):NaN;
-    rows+=`<tr><td>${f(t,0)} mnt</td><td data-l="Api maju (m)">${f(q.head,0)}</td><td data-l="Radius setara (m)">${f(q.req,0)}</td><td data-l="Luas">${q.A>=1e4?f(q.A/1e4,2)+' ha':f(q.A,0)+' m²'}</td><td data-l="CO₂ Kumulatif (kg)">${f(M,1)}</td><td data-l="Sesaat (kg/mnt)">${f(2*M/t,2)}</td><td data-l="CO₂ Penerima (ppm)">${f(P.bg+ex,0)}</td></tr>`;
+  let rows='<thead><tr><th>Menit</th><th>Maju (m)</th><th>Luas Area</th><th>CO₂ Kumulatif</th><th>CO₂ Penerima</th></tr></thead><tbody>';
+  for(let k=1;k<=4;k++){
+    const t=P.dur*k/4, q=fire(o,t), M=emis(q.A,F,P), ex=U>=0.5?conc(M,t,q.a,P.dd,U,cls,T,q.b):NaN;
+    rows+=`<tr><td>${f(t,0)} mnt</td><td data-l="Api maju">${f(q.head,0)}m</td><td data-l="Luas">${q.A>=1e4?f(q.A/1e4,2)+' ha':f(q.A,0)+' m²'}</td><td data-l="CO₂ Total">${f(M,1)}kg</td><td data-l="CO₂ Tambahan">${f(ex,0)}ppm</td></tr>`;
   }
   $('tb').innerHTML=rows+'</tbody>';
 }
 
 function renderCO2(o,P,F,U,cls,T){
   const box=$('cg');
-  if(!(o.R>0)){box.innerHTML='<p class="mut">Api tidak merambat; tidak ada emisi.</p>'; return}
-  if(!(U>=0.5)){box.innerHTML='<p class="mut">Konsentrasi tidak dihitung: angin di bawah 0,5 m/s.</p>'; return}
+  if(!(o.R>0)||!(U>=0.5)) return;
   const ts=[1,2,3,4].map(k=>P.dur*k/4), N=28, ds=[...Array(N)].map((_,i)=>10*Math.pow(100,i/(N-1)));
   const cv=ts.map(t=>{const q=fire(o,t), M=emis(q.A,F,P); return ds.map(x=>conc(M,t,q.a,x,U,cls,T,q.b))});
   const mx=Math.max(...cv.flat());
-  if(!(mx>0)||!fin(mx)){box.innerHTML='<p class="mut">Tidak ada kenaikan CO₂ terukur.</p>'; return}
-  const hiE=Math.ceil(Math.log10(mx)), loE=hiE-4, W=340, Hc=240, l=44, r=8, tp=32, bt=36;
+  if(!(mx>0)||!fin(mx)) return;
+  const hiE=Math.ceil(Math.log10(mx)), loE=hiE-4, W=340, Hc=200, l=44, r=8, tp=20, bt=36;
   const X=x=>l+(Math.log10(x)-1)/2*(W-l-r);
   const Y=y=>tp+(1-(Math.log10(Math.max(y,Math.pow(10,loE)))-loE)/(hiE-loE))*(Hc-tp-bt);
   
@@ -550,15 +388,12 @@ function renderCO2(o,P,F,U,cls,T){
     const y=Y(Math.pow(10,e));
     g+=`<path d="M${l} ${y.toFixed(1)}H${W-r}" stroke="var(--ln)" stroke-dasharray="2 4"/><text x="${l-6}" y="${(y+4).toFixed(1)}" font-size="10" font-weight="500" text-anchor="end" fill="var(--mut)">${+Math.pow(10,e).toPrecision(1)}</text>`
   }
-  [10,30,100,300,1000].forEach(x=>g+=`<text x="${X(x).toFixed(1)}" y="${Hc-16}" font-size="10" font-weight="500" text-anchor="middle" fill="var(--mut)">${x}</text>`);
-  g+=`<text x="${(l+W-r)/2}" y="${Hc-2}" font-size="10" text-anchor="middle" fill="var(--mut)">Jarak (m) | Vertikal: +ppm</text>`;
-  
+  [10,100,1000].forEach(x=>g+=`<text x="${X(x).toFixed(1)}" y="${Hc-16}" font-size="10" text-anchor="middle" fill="var(--mut)">${x}</text>`);
   if(P.dd>=10&&P.dd<=1000) g+=`<path d="M${X(P.dd).toFixed(1)} ${tp}V${Hc-bt}" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="4 4"/>`;
   
-  const col=['var(--mut)','var(--bar)','var(--ink)','var(--em)'], da=['','6 4','2 4','8 4 2 4'];
+  const col=['var(--mut)','var(--bar)','var(--ink)','var(--em)'];
   cv.forEach((a,j)=>{
-    g+=`<path d="${a.map((y,i)=>(i?'L':'M')+X(ds[i]).toFixed(1)+' '+Y(y).toFixed(1)).join('')}" fill="none" stroke="${col[j]}" stroke-width="2.5" stroke-dasharray="${da[j]}"/>`;
-    g+=`<path d="M${l+j*74} 12H${l+j*74+16}" stroke="${col[j]}" stroke-width="2.5" stroke-dasharray="${da[j]}"/><text x="${l+j*74+20}" y="16" font-size="10" font-weight="500" fill="var(--mut)">${f(ts[j],0)}'</text>`;
+    g+=`<path d="${a.map((y,i)=>(i?'L':'M')+X(ds[i]).toFixed(1)+' '+Y(y).toFixed(1)).join('')}" fill="none" stroke="${col[j]}" stroke-width="2.5"/>`;
   });
   box.innerHTML=g+'</svg>';
 }
@@ -571,74 +406,82 @@ function renderHourly(F,P){
     const T=H.temperature_2m[i], r=H.relative_humidity_2m[i], w=H.wind_speed_10m[i];
     d.push(T==null||r==null||w==null?null:ros(T,r,w,F,P).R);
   }
-  const vals=d.filter(x=>fin(x));
-  if(!vals.length){box.innerHTML='<p class="mut">Input cuaca tidak valid untuk grafik.</p>'; return}
-  const mx=Math.max(1e-6,...vals), W=340, Ht=160, l=34, bw=(W-l)/n, top=26, dec=mx<1?2:1;
+  const vals=d.filter(x=>fin(x)), mx=Math.max(1e-6,...vals), W=340, Ht=140, l=34, bw=(W-l)/n, top=20;
   let s=`<svg viewBox="0 0 ${W} ${Ht+26}" role="img">`;
-  
-  [0,.5,1].forEach(p=>{
+  [0,1].forEach(p=>{
     const y=top+(1-p)*(Ht-top);
-    s+=`<path d="M${l} ${y}H${W}" stroke="var(--ln)" stroke-dasharray="3 3"/>`;
-    s+=`<text x="${l-6}" y="${y+4}" font-size="10" font-weight="500" text-anchor="end" fill="var(--mut)">${f(mx*p,dec)}</text>`;
+    s+=`<path d="M${l} ${y}H${W}" stroke="var(--ln)"/><text x="${l-6}" y="${y+4}" font-size="10" text-anchor="end" fill="var(--mut)">${f(mx*p,1)}</text>`;
   });
-  
   d.forEach((x,i)=>{
     if(fin(x)){
       const h=x/mx*(Ht-top);
-      // rx ry untuk balok membulat (modern native app)
       s+=`<rect x="${(l+i*bw+1).toFixed(1)}" y="${(Ht-h).toFixed(1)}" width="${(bw-2).toFixed(1)}" height="${h.toFixed(1)}" rx="3" ry="3" fill="${i===sel?'var(--em)':'var(--bar)'}"/>`;
     }
-    if(i%3===0) s+=`<text x="${(l+i*bw+bw/2).toFixed(1)}" y="${Ht+16}" font-size="10" font-weight="600" text-anchor="middle" fill="var(--mut)">${String(i).padStart(2,'0')}</text>`;
-    s+=`<rect data-h="${i}" x="${(l+i*bw).toFixed(1)}" y="0" width="${bw.toFixed(1)}" height="${Ht+22}" fill="transparent" style="cursor:pointer"><title>Pkl ${String(i).padStart(2,'0')}:00</title></rect>`;
+    if(i%4===0) s+=`<text x="${(l+i*bw+bw/2).toFixed(1)}" y="${Ht+16}" font-size="10" text-anchor="middle" fill="var(--mut)">${String(i).padStart(2,'0')}</text>`;
+    s+=`<rect data-h="${i}" x="${(l+i*bw).toFixed(1)}" y="0" width="${bw.toFixed(1)}" height="${Ht+22}" fill="transparent" style="cursor:pointer"></rect>`;
   });
-  
-  const lbl=sel>=0&&fin(d[sel])?`Pkl ${String(sel).padStart(2,'0')}:00 = ${f(d[sel],2)} m/mnt`:'Ketuk grafik untuk memilih jam spesifik';
-  s+=`<text x="${l}" y="12" font-size="11" font-weight="600" fill="var(--ink)">${lbl}</text></svg>`;
-  box.innerHTML=s;
+  box.innerHTML=s+'</svg>';
 }
 
 /* ---------- Perhitungan utama ---------- */
-const METRICS=['r','rh2','fl','ii','mm','r0','wf','ir','br','dp','rx','ar','rhd','rS','flS','iiS'];
+const METRICS=['r','rh2','fl','ii','mm','r0','wf','ir','br','dp','dirS','rS','flS','iiS'];
 function blank(txt){
-  METRICS.forEach(i=>{$(i).textContent='–'});
+  METRICS.forEach(i=>{if($(i))$(i).textContent='–'});
   ['dg','cg','tb','ch'].forEach(i=>{$(i).innerHTML=''});$('wn').innerHTML=''; $('nt').textContent=txt; $('nt2').textContent='';
 }
 function calc(){
   const F=fuel(), P=readP();
-  $('rhoV').textContent=F.ok?f(F.rho,2):'–';
-  $('wdl').textContent=fin(num('wd'))?`Angin dari ${compass(num('wd'))}`:'';
   renderProfile(F);
   const T=num('t'), RH=num('rh'), U=num('w');
-  const err=P.err||(!F.ok?'Periksa muatan, tebal, dan tutupan (>0–100%).':'')||(wxBad(T,RH,U)?'Periksa suhu, RH, dan angin.':'');
+  const err=P.err||(!F.ok?'Periksa variabel bahan bakar.':'')||(wxBad(T,RH,U)?'Periksa suhu, RH, dan angin.':'');
   if(err){blank(err); return}
   const o=ros(T,RH,U,F,P);
   if(!fin(o.R)){blank('Kalkulasi gagal dengan input tersebut.'); return}
   
   const fl=0.0775*Math.pow(Math.max(0,o.I),0.46);
-  $('r').textContent=f(o.R,2);$('rS').textContent=f(o.R,2);
-  $('rh2').textContent=f(o.R*60,0);$('fl').textContent=f(fl,2); $('flS').textContent=f(fl,2);$('ii').textContent=f(o.I,0); $('iiS').textContent=f(o.I,0);$('mm').textContent=f(o.Mf*100,1)+'%';
-  $('r0').textContent=f(o.R0,2);$('wf').textContent='×'+f(1+o.phi,2);
+  $('r').textContent=f(o.R,2); $('rS').textContent=f(o.R,2);
+  $('fl').textContent=f(fl,2); $('flS').textContent=f(fl,2);$('ii').textContent=f(o.I,0); $('iiS').textContent=f(o.I,0);$('mm').textContent=f(o.Mf*100,1)+'%';
+  $('r0').textContent=f(o.R0,2);$('wf').textContent='×'+f(1+o.phiNet,2);
   $('ir').textContent=f(o.IR,0);$('br').textContent=f(o.ratio,2);
-  $('dp').textContent=f(F.dep*100,1)+' cm';$('rx').textContent=f(F.loc,2)+' kg/m²';
-  $('ar').textContent=f(F.cov*100,0)+'\%';$('rhd').textContent=f(F.rho,2);
+  $('dp').textContent=f(F.dep*100,1)+' cm';$('dirS').textContent=f(o.spreadDir,1)+'°';
   
   const w=[];
   if(o.dead) w.push('Kadar air cacahan tinggi, api diprediksi padam.');
-  if(o.lim) w.push('Angin efektif dibatasi oleh batas empiris (0,9·I_R).');
-  if(o.ratio>3) w.push(`Hamparan terlalu padat (β/βop = ${f(o.ratio,1)}), di atas kalibrasi model.`);
-  else if(o.ratio<0.2) w.push(`Hamparan sangat renggang (β/βop = ${f(o.ratio,2)}).`);
-  if(U<0.5) w.push('Angin pelan (<0.5 m/s): CO₂ tidak dipetakan.');
+  if(o.lim) w.push('Angin efektif dibatasi oleh batas empiris Rothermel.');
+  if(P.slope>20) w.push('Lereng > 20° memicu laju ekstrem ke arah atas lereng.');
   
   $('wn').innerHTML=w.map(x=>`<p class="w">⚠️ ${x}</p>`).join('');
-  $('nt').textContent=`Muatan area: ${f(F.w0,2)} kg/m². Efektif dikali tutupan (${f(F.cov*100,0)}%).`;
   
   const cls=stab(Math.max(U,0.5));
   renderMap(o,P,F); renderTable(o,P,F,U,cls,T); renderCO2(o,P,F,U,cls,T);
-  $('nt2').textContent=`Kelas stabilitas: ${cls}. Latar CO₂: ${P.bg} ppm.`;
+  $('nt2').textContent=`Arah rambat murni dipengaruhi penjumlahan vektor angin dan lereng.`;
   renderHourly(F,P);
 }
 
-/* ---------- Cuaca ---------- */
+/* ---------- Cuaca & Topografi API ---------- */
+async function getTerrain(lat, lon, distM) {
+  const dLat = distM / 111320;
+  const dLon = distM / (111320 * Math.cos(lat * Math.PI / 180));
+  const lats = [lat, lat + dLat, lat - dLat, lat, lat];
+  const lons = [lon, lon, lon, lon + dLon, lon - dLon];
+  
+  const r = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lats.join(',')}&longitude=${lons.join(',')}`);
+  const j = await r.json();
+  if(!j.elevation) throw new Error("Gagal mengambil DEM");
+  const [z, zN, zS, zE, zW] = j.elevation;
+  
+  const slopeNS = (zN - zS) / (2 * distM);
+  const slopeEW = (zE - zW) / (2 * distM);
+  const slopeRad = Math.atan(Math.hypot(slopeNS, slopeEW));
+  const aspectRad = Math.atan2(slopeEW, slopeNS);
+  
+  return {
+    elev: z,
+    slope: slopeRad * 180 / Math.PI,
+    aspect: (aspectRad * 180 / Math.PI + 360) % 360
+  };
+}
+
 function applyHour(i){
   const t=H.temperature_2m[i], h=H.relative_humidity_2m[i], w=H.wind_speed_10m[i], wd=H.wind_direction_10m[i];
   if([t,h,w,wd].some(x=>x==null)) return false;
@@ -647,34 +490,44 @@ function applyHour(i){
   msg(`Data satelit: Suhu ${t}°C, RH ${h}%, Angin ${w}m/s.`);
   return true;
 }
+
 async function go(){
-  const lat=num('lat'), lon=num('lon'), dt=$('dt').value;
+  const lat=num('lat'), lon=num('lon'), dt=$('dt').value, distM=num('dem_dist')||50;
   if(!dt||!fin(lat)||!fin(lon)||Math.abs(lat)>90||Math.abs(lon)>180){msg('Cek koordinat dan waktu.'); return}
   const day=dt.slice(0,10), old=(Date.now()-new Date(day+'T00:00'))/864e5>5;
   const base=old?'https://archive-api.open-meteo.com/v1/archive':'https://api.open-meteo.com/v1/forecast';
-  msg('Menghubungkan ke Open-Meteo…'); $('go').disabled=true;
-  const ctl=new AbortController(), to=setTimeout(()=>ctl.abort(),15000);
+  const wUrl = `${base}?latitude=${lat}&longitude=${lon}&start_date=${day}&end_date=${day}&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,shortwave_radiation,cloud_cover&wind_speed_unit=ms&timezone=auto`;
+  
+  msg('Menghubungkan ke Open-Meteo Cuaca & Topografi…'); $('go').disabled=true;
   try{
-    const r=await fetch(`${base}?latitude=${lat}&longitude=${lon}&start_date=${day}&end_date=${day}&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,shortwave_radiation,cloud_cover&wind_speed_unit=ms&timezone=auto`,{signal:ctl.signal});
-    const j=await r.json();
-    if(j.error) throw new Error(j.reason||'Ditolak server');
-    H=j.hourly; TZ=j.timezone_abbreviation||'';
+    const [wRes, tData] = await Promise.all([
+      fetch(wUrl).then(r=>r.json()),
+      getTerrain(lat, lon, distM)
+    ]);
+    
+    if(wRes.error) throw new Error(wRes.reason||'Ditolak server cuaca');
+    
+    // Set Topografi
+    $('elev').value = tData.elev.toFixed(1);
+    $('slope').value = tData.slope.toFixed(1);$('aspect').value = Math.round(tData.aspect);
+    
+    H=wRes.hourly; TZ=wRes.timezone_abbreviation||'';
     const hr=Math.min(H.time.length-1,Math.max(0,+dt.slice(11,13)));
-    if(!applyHour(hr)) throw new Error('Data belum tersedia');
+    if(!applyHour(hr)) throw new Error('Data cuaca belum tersedia');
+    
     calc();
   }catch(e){
-    msg(e.name==='AbortError'?'Koneksi lambat. Isi cuaca manual.':'Gagal: '+e.message);
-  }finally{ clearTimeout(to); $('go').disabled=false }
+    msg('Gagal: '+e.message);
+  }finally{ $('go').disabled=false }
 }
 
-/* ---------- Event Listeners ---------- */
 $('gps').onclick=()=>{
   if(!navigator.geolocation){msg('Perangkat tidak mendeteksi lokasi.'); return}
   msg('Melacak koordinat GPS…');
   navigator.geolocation.getCurrentPosition(p=>{
     $('lat').value=p.coords.latitude.toFixed(4);$('lon').value=p.coords.longitude.toFixed(4);
     H=null; ENV=null; sel=-1; calc();
-    msg('Lokasi terkunci. Silakan Ambil Data Cuaca.');
+    msg('Lokasi terkunci. Silakan Ambil Cuaca & DEM Elevasi.');
   },e=>msg('Izin lokasi ditolak/gagal.'), {enableHighAccuracy:true, timeout:15000});
 };
 $('go').onclick=go;
@@ -686,10 +539,7 @@ const RESET=new Set(['lat','lon','dt']);
 document.querySelectorAll('main input, main select').forEach(el=>{
   if(el.id==='gps'||el.id==='go') return;
   const h=()=>{
-    if(RESET.has(el.id)){
-      if(H){H=null; ENV=null; sel=-1; msg('Lokasi/waktu berubah, silakan ambil ulang cuaca.'); calc()}
-      return;
-    }
+    if(RESET.has(el.id)){ if(H){H=null; ENV=null; sel=-1; msg('Koordinat/waktu berubah, ambil ulang data satelit.'); calc()} return;}
     calc();
   };
   el.addEventListener('input',h); el.addEventListener('change',h);
