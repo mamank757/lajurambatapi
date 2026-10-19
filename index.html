@@ -444,7 +444,7 @@ function calc(){
   renderProfile(F);
   const T=num('t'), RH=num('rh'), U=num('w');
   
-  if($('wdl'))$('wdl').textContent = fin(num('wd')) ? `Arah: ${compass(num('wd'))}` : '';
+  if($('wdl'))$('wdl').textContent = fin(num('wd')) ? `Dari: ${compass(num('wd'))}` : '';
   if($('aspectL'))$('aspectL').textContent = fin(num('aspect')) ? `Arah: ${compass(num('aspect'))}` : '';
 
   const err=P.err||(!F.ok?'Periksa variabel bahan bakar.':'')||(wxBad(T,RH,U)?'Periksa suhu, RH, dan angin.':'');
