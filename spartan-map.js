@@ -78,7 +78,7 @@ sec.innerHTML=`<h2>Peta Kerawanan Api (gaya SPARTAN)</h2>
 <div class="row"><button class="o" id="mLoc" type="button">Gunakan Lokasi Saya</button><button id="mGo" type="button">Perbarui Peta</button></div>
 <div id="spMsg">Mencari posisi Anda…</div>
 <div id="spMap"></div><div id="spLeg"></div>
-<p class="cap">Data: Open-Meteo (model satelit/reanalisis), pembacaan jam 12 siang setempat, hujan 24 jam, spin-up ${SPIN} hari dari FFMC 85 / DMC 25 / DC 250. Karena itu DMC, DC, BUI, dan FWI hanya perkiraan dan tidak identik dengan SPARTAN BMKG yang dikalibrasi lokal. Ambang FFMC dan DC mengikuti klasifikasi BMKG, ambang lainnya indikatif. Resolusi asli data Open-Meteo sekitar 10–28 km (model global untuk tanggal terbaru, ERA5 untuk tanggal lama), jadi peta berwarna ini adalah interpolasi halus antar titik data, bukan detail asli per desa.</p>`;
+<p class="cap">Data: Open-Meteo (model satelit/reanalisis), pembacaan jam 12 siang setempat, hujan 24 jam, spin-up ${SPIN} hari dari FFMC 85 / DMC 25 / DC 250. Karena itu DMC, DC, BUI, dan FWI hanya perkiraan dan tidak identik dengan SPARTAN BMKG yang dikalibrasi lokal. Ambang FFMC dan DC mengikuti klasifikasi BMKG, ambang lainnya indikatif. Resolusi asli data Open-Meteo sekitar 10–28 km (model global untuk tanggal terbaru, ERA5 untuk tanggal lama), jadi peta berwarna ini adalah interpolasi halus antar titik data, bukan detail asli per desa. Area berelevasi ≤ 0 m (laut) tidak diwarnai.</p>`;
 const first=document.querySelector('main > section');first.parentNode.insertBefore(sec,first);
 const sm=t=>{$('spMsg').textContent=t};
 
@@ -106,10 +106,10 @@ async function loadGrid(){
     const res=await Promise.all(urls.map(u=>fetch(u).then(r=>r.json())));
     const arr=[];
     res.forEach(j=>{if(j.error)throw new Error(j.reason||'Ditolak server cuaca');arr.push(...(Array.isArray(j)?j:[j]))});
-    cells.forEach((c,i)=>{c.d=arr[i]&&arr[i].hourly?series(arr[i].hourly):null;c.b=[[c.lat-step/2,c.lon-step/2],[c.lat+step/2,c.lon+step/2]]});
+    cells.forEach((c,i)=>{c.d=arr[i]&&arr[i].hourly?series(arr[i].hourly):null;c.el=arr[i]&&arr[i].elevation!=null?arr[i].elevation:NaN;c.b=[[c.lat-step/2,c.lon-step/2],[c.lat+step/2,c.lon+step/2]]});
     G={cells,lat,lon,half,step,day};
     if(!map){
-      map=L.map('spMap').setView([lat,lon],8);
+      map=L.map('spMap',{zoomSnap:.25,zoomDelta:.5}).setView([lat,lon],8);
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap'}).addTo(map);
       grp=L.layerGroup().addTo(map);
       map.on('click',e=>{
@@ -120,7 +120,7 @@ async function loadGrid(){
         L.popup().setLatLng(e.latlng).setContent(popup(r*N+c)).openOn(map);
       });
     }
-    map.fitBounds([[lat-half-step/2,lon-half-step/2],[lat+half+step/2,lon+half+step/2]]);
+    map.invalidateSize();map.fitBounds([[lat-half-step/2,lon-half-step/2],[lat+half+step/2,lon+half+step/2]],{padding:[6,6]});
     paint();
     sm(`Peta ${f(lat,3)}, ${f(lon,3)} · ${day} (jam 12 setempat), ${cells.filter(c=>c.d).length}/${cells.length} titik valid. Ketuk peta untuk detail.`);
   }catch(e){sm('Gagal: '+e.message)}
@@ -140,11 +140,13 @@ function interp(v,x,y){
 /* Lapisan warna halus: interpolasi bilinear antar titik data, digambar ke kanvas lalu ditempel sebagai gambar di peta */
 function drawField(ly){
   const S=360,cv=document.createElement('canvas');cv.width=cv.height=S;
-  const ctx=cv.getContext('2d'),img=ctx.createImageData(S,S),v=G.cells.map(c=>c.d?c.d[ly.k]:NaN),rgb=COL.map(hex);
+  const ctx=cv.getContext('2d'),img=ctx.createImageData(S,S),v=G.cells.map(c=>c.d?c.d[ly.k]:NaN),rgb=COL.map(hex),el=G.cells.map(c=>c.el),mask=el.some(z=>z>0.5);
   for(let py=0;py<S;py++)for(let px=0;px<S;px++){
-    const val=interp(v,(px+.5)/S*N-.5,(py+.5)/S*N-.5),k=cls(val,ly.th),o=(py*S+px)*4;
+    const gx=(px+.5)/S*N-.5,gy=(py+.5)/S*N-.5,k=cls(interp(v,gx,gy),ly.th),o=(py*S+px)*4;
     if(k<0)continue;
-    img.data[o]=rgb[k][0];img.data[o+1]=rgb[k][1];img.data[o+2]=rgb[k][2];img.data[o+3]=165;
+    if(mask){const z=interp(el,gx,gy);if(fin(z)&&z<=0.5)continue}  /* laut tidak diwarnai */
+    const fade=Math.min(1,Math.min(px,py,S-1-px,S-1-py)/(S/N));    /* tepi area memudar halus */
+    img.data[o]=rgb[k][0];img.data[o+1]=rgb[k][1];img.data[o+2]=rgb[k][2];img.data[o+3]=Math.round(165*fade);
   }
   ctx.putImageData(img,0,0);
   const e=G.half+G.step/2;
