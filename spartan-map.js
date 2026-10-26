@@ -70,16 +70,16 @@ button.sp{padding:8px 10px;font-size:.85rem;width:100%;margin-top:4px}
 document.head.appendChild(Object.assign(document.createElement('style'),{textContent:css}));
 
 const sec=document.createElement('section');
-sec.innerHTML=`<h2>5. Peta Kerawanan Api (gaya SPARTAN)</h2>
+sec.innerHTML=`<h2>Peta Kerawanan Api (gaya SPARTAN)</h2>
 <div class="g">
   <label class="full">Lapisan peta<select id="mLayer">${Object.entries(LY).map(([k,v])=>`<option value="${k}">${v.n} — ${v.t}</option>`).join('')}</select></label>
   <label class="full">Jangkauan area (dari titik Lintang/Bujur)<select id="mSpan"><option value="0.75">± 0,75° (≈ 80 km)</option><option value="1.5" selected>± 1,5° (≈ 165 km)</option><option value="3">± 3° (≈ 330 km)</option></select></label>
 </div>
-<div class="row"><button id="mGo" type="button">Muat Peta Kerawanan</button></div>
-<div id="spMsg">Atur Lintang, Bujur, dan Tanggal di atas, lalu muat peta. Ketuk kotak untuk detail.</div>
+<div class="row"><button class="o" id="mLoc" type="button">Gunakan Lokasi Saya</button><button id="mGo" type="button">Perbarui Peta</button></div>
+<div id="spMsg">Mencari posisi Anda…</div>
 <div id="spMap"></div><div id="spLeg"></div>
 <p class="cap">Data: Open-Meteo (model satelit/reanalisis), pembacaan jam 12 siang setempat, hujan 24 jam, spin-up ${SPIN} hari dari FFMC 85 / DMC 25 / DC 250. Karena itu DMC, DC, BUI, dan FWI hanya perkiraan dan tidak identik dengan SPARTAN BMKG yang dikalibrasi lokal. Ambang FFMC dan DC mengikuti klasifikasi BMKG, ambang lainnya indikatif.</p>`;
-const anchor=$('ch').closest('section');anchor.parentNode.insertBefore(sec,anchor);
+const first=document.querySelector('main > section');first.parentNode.insertBefore(sec,first);
 const sm=t=>{$('spMsg').textContent=t};
 
 function loadLeaflet(){
@@ -114,7 +114,7 @@ async function loadGrid(){
     }
     map.fitBounds([[lat-half-step/2,lon-half-step/2],[lat+half+step/2,lon+half+step/2]]);
     paint();
-    sm(`Peta ${day} (jam 12 setempat), ${cells.filter(c=>c.d).length}/${cells.length} titik valid.`);
+    sm(`Peta ${f(lat,3)}, ${f(lon,3)} · ${day} (jam 12 setempat), ${cells.filter(c=>c.d).length}/${cells.length} titik valid.`);
   }catch(e){sm('Gagal: '+e.message)}
   finally{$('mGo').disabled=false}
 }
@@ -151,9 +151,22 @@ window.spPick=i=>{
   $('lat').value=c.lat.toFixed(4);$('lon').value=c.lon.toFixed(4);$('loc_name').value='Mencari lokasi...';
   map.closePopup();window.scrollTo({top:0,behavior:'smooth'});go();
 };
+/* Posisi pengguna otomatis: isi Lintang/Bujur, ambil data titik, lalu muat peta */
+function locate(){
+  if(!navigator.geolocation){sm('Perangkat tidak mendeteksi lokasi, memakai koordinat bawaan.');loadGrid();return}
+  sm('Mencari posisi Anda…');
+  navigator.geolocation.getCurrentPosition(p=>{
+    $('lat').value=p.coords.latitude.toFixed(4);$('lon').value=p.coords.longitude.toFixed(4);$('loc_name').value='Mencari lokasi...';
+    H=null;ENV=null;sel=-1;calc();
+    go();loadGrid();
+  },()=>{sm('Izin lokasi ditolak/gagal, memakai koordinat bawaan.');loadGrid()},{enableHighAccuracy:true,timeout:15000,maximumAge:60000});
+}
 $('mGo').onclick=loadGrid;
+$('mLoc').onclick=locate;
+$('gps').onclick=locate;
 $('mLayer').addEventListener('change',paint);
 document.addEventListener('input',e=>{
   if(G&&$('mLayer').value==='R'&&e.target.closest&&e.target.closest('main')&&!/^m(Layer|Span)$/.test(e.target.id))setTimeout(paint,0);
 });
+locate();
 })();
