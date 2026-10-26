@@ -657,14 +657,8 @@ const sec=document.createElement('section');
 sec.innerHTML=`<h2>Peta Kerawanan Api (gaya SPARTAN)</h2>
 <div class="g">
   <label class="full">Lapisan peta<select id="mLayer">${Object.entries(LY).map(([k,v])=>`<option value="${k}">${v.n} — ${v.t}</option>`).join('')}</select></label>
-  <label class="full">Jarak titik data
-  <select id="mSpan">
-    <option value="0.1">Sangat Rapat: ≈ 11 km/titik (area ≈ 230 km)</option>
-    <option value="0.25" selected>Tingkat Kabupaten: ≈ 28 km/titik (area ≈ 580 km)</option>
-    <option value="0.5">Tingkat Provinsi: ≈ 55 km/titik (area ≈ 1150 km)</option>
-    <option value="0.8">Tingkat Pulau: ≈ 88 km/titik (area ≈ 1850 km)</option>
-  </select>
-</label></div>
+  <label class="full">Jarak titik data<select id="mSpan"><option value="0.1" selected>Rapat: ≈ 11 km/titik (area ≈ 130 km)</option><option value="0.25">Sedang: ≈ 28 km/titik (area ≈ 330 km)</option><option value="0.5">Luas: ≈ 55 km/titik (area ≈ 670 km)</option></select></label>
+</div>
 <div class="row"><button class="o" id="mLoc" type="button">Gunakan Lokasi Saya</button><button id="mGo" type="button">Perbarui Peta</button></div>
 <div id="spMsg">Mencari posisi Anda…</div>
 <div id="spMap"></div><div id="spLeg"></div>
