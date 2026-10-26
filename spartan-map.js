@@ -3,7 +3,7 @@
    Memakai data Open-Meteo yang sama + indeks FWI Kanada (FFMC, DMC, DC, ISI, BUI, FWI) + laju rambat jerami (Rothermel). */
 (()=>{
 'use strict';
-const CDN='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/', N=7, SPIN=14;
+const CDN='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/', N=13, SPIN=14, CH=45;
 const COL=['#4e9a51','#e2c534','#ec8a2b','#d3322a'], KLS=['Rendah','Sedang','Tinggi','Ekstrem'];
 /* Ambang FFMC & DC mengikuti klasifikasi BMKG; lainnya indikatif (ubah di sini bila perlu) */
 const LY={
@@ -73,12 +73,12 @@ const sec=document.createElement('section');
 sec.innerHTML=`<h2>Peta Kerawanan Api (gaya SPARTAN)</h2>
 <div class="g">
   <label class="full">Lapisan peta<select id="mLayer">${Object.entries(LY).map(([k,v])=>`<option value="${k}">${v.n} — ${v.t}</option>`).join('')}</select></label>
-  <label class="full">Jangkauan area (dari titik Lintang/Bujur)<select id="mSpan"><option value="0.75">± 0,75° (≈ 80 km)</option><option value="1.5" selected>± 1,5° (≈ 165 km)</option><option value="3">± 3° (≈ 330 km)</option></select></label>
+  <label class="full">Ukuran kotak<select id="mSpan"><option value="0.1" selected>Rapat: ≈ 11 km/kotak (area ≈ 130 km)</option><option value="0.25">Sedang: ≈ 28 km/kotak (area ≈ 330 km)</option><option value="0.5">Luas: ≈ 55 km/kotak (area ≈ 670 km)</option></select></label>
 </div>
 <div class="row"><button class="o" id="mLoc" type="button">Gunakan Lokasi Saya</button><button id="mGo" type="button">Perbarui Peta</button></div>
 <div id="spMsg">Mencari posisi Anda…</div>
 <div id="spMap"></div><div id="spLeg"></div>
-<p class="cap">Data: Open-Meteo (model satelit/reanalisis), pembacaan jam 12 siang setempat, hujan 24 jam, spin-up ${SPIN} hari dari FFMC 85 / DMC 25 / DC 250. Karena itu DMC, DC, BUI, dan FWI hanya perkiraan dan tidak identik dengan SPARTAN BMKG yang dikalibrasi lokal. Ambang FFMC dan DC mengikuti klasifikasi BMKG, ambang lainnya indikatif.</p>`;
+<p class="cap">Data: Open-Meteo (model satelit/reanalisis), pembacaan jam 12 siang setempat, hujan 24 jam, spin-up ${SPIN} hari dari FFMC 85 / DMC 25 / DC 250. Karena itu DMC, DC, BUI, dan FWI hanya perkiraan dan tidak identik dengan SPARTAN BMKG yang dikalibrasi lokal. Ambang FFMC dan DC mengikuti klasifikasi BMKG, ambang lainnya indikatif. Resolusi asli data Open-Meteo sekitar 10–28 km (model global untuk tanggal terbaru, ERA5 untuk tanggal lama), jadi kotak yang lebih rapat dari itu hanya menghaluskan tampilan, bukan menambah detail.</p>`;
 const first=document.querySelector('main > section');first.parentNode.insertBefore(sec,first);
 const sm=t=>{$('spMsg').textContent=t};
 
@@ -91,20 +91,21 @@ function loadLeaflet(){
 }
 
 async function loadGrid(){
-  const lat=num('lat'),lon=num('lon'),dt=$('dt').value,half=+$('mSpan').value;
+  const lat=num('lat'),lon=num('lon'),dt=$('dt').value,step=+$('mSpan').value,half=step*(N-1)/2;
   if(!dt||!fin(lat)||!fin(lon)||Math.abs(lat)>85||Math.abs(lon)>180){sm('Cek koordinat dan waktu.');return}
   const day=dt.slice(0,10),old=(Date.now()-new Date(day+'T00:00'))/864e5>5;
   const base=old?'https://archive-api.open-meteo.com/v1/archive':'https://api.open-meteo.com/v1/forecast';
   const s0=new Date(day+'T00:00:00Z');s0.setUTCDate(s0.getUTCDate()-SPIN);
-  const step=2*half/(N-1),cells=[];
+  const cells=[];
   for(let r=0;r<N;r++)for(let c=0;c<N;c++)cells.push({lat:lat+half-r*step,lon:lon-half+c*step});
-  const url=`${base}?latitude=${cells.map(c=>c.lat.toFixed(3)).join()}&longitude=${cells.map(c=>c.lon.toFixed(3)).join()}&start_date=${s0.toISOString().slice(0,10)}&end_date=${day}&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,precipitation&wind_speed_unit=kmh&timezone=auto`;
+  const mk=p=>`${base}?latitude=${p.map(c=>c.lat.toFixed(3)).join()}&longitude=${p.map(c=>c.lon.toFixed(3)).join()}&start_date=${s0.toISOString().slice(0,10)}&end_date=${day}&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,precipitation&wind_speed_unit=kmh&timezone=auto`;
   $('mGo').disabled=true;sm('Mengunduh data satelit untuk '+cells.length+' titik…');
   try{
     await loadLeaflet();
-    const j=await fetch(url).then(r=>r.json());
-    if(j.error)throw new Error(j.reason||'Ditolak server cuaca');
-    const arr=Array.isArray(j)?j:[j];
+    const urls=[];for(let i=0;i<cells.length;i+=CH)urls.push(mk(cells.slice(i,i+CH)));
+    const res=await Promise.all(urls.map(u=>fetch(u).then(r=>r.json())));
+    const arr=[];
+    res.forEach(j=>{if(j.error)throw new Error(j.reason||'Ditolak server cuaca');arr.push(...(Array.isArray(j)?j:[j]))});
     cells.forEach((c,i)=>{c.d=arr[i]&&arr[i].hourly?series(arr[i].hourly):null;c.b=[[c.lat-step/2,c.lon-step/2],[c.lat+step/2,c.lon+step/2]]});
     G={cells,lat,lon,half,step,day};
     if(!map){
