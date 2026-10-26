@@ -73,12 +73,12 @@ const sec=document.createElement('section');
 sec.innerHTML=`<h2>Peta Kerawanan Api (gaya SPARTAN)</h2>
 <div class="g">
   <label class="full">Lapisan peta<select id="mLayer">${Object.entries(LY).map(([k,v])=>`<option value="${k}">${v.n} — ${v.t}</option>`).join('')}</select></label>
-  <label class="full">Ukuran kotak<select id="mSpan"><option value="0.1" selected>Rapat: ≈ 11 km/kotak (area ≈ 130 km)</option><option value="0.25">Sedang: ≈ 28 km/kotak (area ≈ 330 km)</option><option value="0.5">Luas: ≈ 55 km/kotak (area ≈ 670 km)</option></select></label>
+  <label class="full">Jarak titik data<select id="mSpan"><option value="0.1" selected>Rapat: ≈ 11 km/titik (area ≈ 130 km)</option><option value="0.25">Sedang: ≈ 28 km/titik (area ≈ 330 km)</option><option value="0.5">Luas: ≈ 55 km/titik (area ≈ 670 km)</option></select></label>
 </div>
 <div class="row"><button class="o" id="mLoc" type="button">Gunakan Lokasi Saya</button><button id="mGo" type="button">Perbarui Peta</button></div>
 <div id="spMsg">Mencari posisi Anda…</div>
 <div id="spMap"></div><div id="spLeg"></div>
-<p class="cap">Data: Open-Meteo (model satelit/reanalisis), pembacaan jam 12 siang setempat, hujan 24 jam, spin-up ${SPIN} hari dari FFMC 85 / DMC 25 / DC 250. Karena itu DMC, DC, BUI, dan FWI hanya perkiraan dan tidak identik dengan SPARTAN BMKG yang dikalibrasi lokal. Ambang FFMC dan DC mengikuti klasifikasi BMKG, ambang lainnya indikatif. Resolusi asli data Open-Meteo sekitar 10–28 km (model global untuk tanggal terbaru, ERA5 untuk tanggal lama), jadi kotak yang lebih rapat dari itu hanya menghaluskan tampilan, bukan menambah detail.</p>`;
+<p class="cap">Data: Open-Meteo (model satelit/reanalisis), pembacaan jam 12 siang setempat, hujan 24 jam, spin-up ${SPIN} hari dari FFMC 85 / DMC 25 / DC 250. Karena itu DMC, DC, BUI, dan FWI hanya perkiraan dan tidak identik dengan SPARTAN BMKG yang dikalibrasi lokal. Ambang FFMC dan DC mengikuti klasifikasi BMKG, ambang lainnya indikatif. Resolusi asli data Open-Meteo sekitar 10–28 km (model global untuk tanggal terbaru, ERA5 untuk tanggal lama), jadi peta berwarna ini adalah interpolasi halus antar titik data, bukan detail asli per desa.</p>`;
 const first=document.querySelector('main > section');first.parentNode.insertBefore(sec,first);
 const sm=t=>{$('spMsg').textContent=t};
 
@@ -112,20 +112,50 @@ async function loadGrid(){
       map=L.map('spMap').setView([lat,lon],8);
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap'}).addTo(map);
       grp=L.layerGroup().addTo(map);
+      map.on('click',e=>{
+        if(!G)return;
+        const c=Math.round((e.latlng.lng-(G.lon-G.half))/G.step),r=Math.round((G.lat+G.half-e.latlng.lat)/G.step);
+        if(c<0||r<0||c>=N||r>=N||!G.cells[r*N+c].d)return;
+        G.pk={lat:e.latlng.lat,lon:e.latlng.lng};
+        L.popup().setLatLng(e.latlng).setContent(popup(r*N+c)).openOn(map);
+      });
     }
     map.fitBounds([[lat-half-step/2,lon-half-step/2],[lat+half+step/2,lon+half+step/2]]);
     paint();
-    sm(`Peta ${f(lat,3)}, ${f(lon,3)} · ${day} (jam 12 setempat), ${cells.filter(c=>c.d).length}/${cells.length} titik valid.`);
+    sm(`Peta ${f(lat,3)}, ${f(lon,3)} · ${day} (jam 12 setempat), ${cells.filter(c=>c.d).length}/${cells.length} titik valid. Ketuk peta untuk detail.`);
   }catch(e){sm('Gagal: '+e.message)}
   finally{$('mGo').disabled=false}
 }
 
+const hex=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+function interp(v,x,y){
+  x=Math.min(N-1,Math.max(0,x));y=Math.min(N-1,Math.max(0,y));
+  const x0=Math.min(N-2,Math.floor(x)),y0=Math.min(N-2,Math.floor(y)),fx=x-x0,fy=y-y0;
+  let s=0,w=0;
+  [[0,0,(1-fx)*(1-fy)],[1,0,fx*(1-fy)],[0,1,(1-fx)*fy],[1,1,fx*fy]].forEach(([dx,dy,k])=>{
+    const a=v[(y0+dy)*N+x0+dx];if(fin(a)&&k>0){s+=a*k;w+=k}
+  });
+  return w>1e-6?s/w:NaN;
+}
+/* Lapisan warna halus: interpolasi bilinear antar titik data, digambar ke kanvas lalu ditempel sebagai gambar di peta */
+function drawField(ly){
+  const S=360,cv=document.createElement('canvas');cv.width=cv.height=S;
+  const ctx=cv.getContext('2d'),img=ctx.createImageData(S,S),v=G.cells.map(c=>c.d?c.d[ly.k]:NaN),rgb=COL.map(hex);
+  for(let py=0;py<S;py++)for(let px=0;px<S;px++){
+    const val=interp(v,(px+.5)/S*N-.5,(py+.5)/S*N-.5),k=cls(val,ly.th),o=(py*S+px)*4;
+    if(k<0)continue;
+    img.data[o]=rgb[k][0];img.data[o+1]=rgb[k][1];img.data[o+2]=rgb[k][2];img.data[o+3]=165;
+  }
+  ctx.putImageData(img,0,0);
+  const e=G.half+G.step/2;
+  L.imageOverlay(cv.toDataURL(),[[G.lat-e,G.lon-e],[G.lat+e,G.lon+e]],{interactive:false}).addTo(grp);
+}
 const cls=(v,th)=>fin(v)?th.filter(t=>v>t).length:-1;
 
 function popup(i){
   const c=G.cells[i],d=c.d,ly=LY[$('mLayer').value],k=cls(d[ly.k],ly.th);
   const q=(l,v,n)=>`<tr><td>${l}</td><td style="text-align:right;padding-left:14px"><b>${f(v,n)}</b></td></tr>`;
-  return `<div style="min-width:180px"><b>${f(c.lat,2)}, ${f(c.lon,2)}</b><br><span style="font-size:.8rem;color:${k>=0?COL[k]:'inherit'}">${ly.n}: <b>${k>=0?KLS[k]:'–'}</b></span>
+  return `<div style="min-width:180px"><b>${f((G.pk||c).lat,3)}, ${f((G.pk||c).lon,3)}</b><br><span style="font-size:.8rem;color:${k>=0?COL[k]:'inherit'}">${ly.n}: <b>${k>=0?KLS[k]:'–'}</b></span>
   <table style="width:100%;border:0;margin:6px 0">${q('FFMC',d.ffmc,0)}${q('DMC',d.dmc,0)}${q('DC',d.dc,0)}${q('ISI',d.isi,1)}${q('BUI',d.bui,0)}${q('FWI',d.fwi,1)}
   ${q('Suhu (°C)',d.T,1)}${q('RH (%)',d.H,0)}${q('Angin (km/j)',d.W,1)}${q('Hujan 24j (mm)',d.rain,1)}${q('Rambat jerami (m/mnt)',d.R,1)}</table>
   <button class="sp" onclick="spPick(${i})">Analisis titik ini ↑</button></div>`;
@@ -138,17 +168,16 @@ function paint(){
   G.cells.forEach((c,i)=>{
     if(!c.d)return;
     c.d.R=(P.err||!F.ok)?NaN:ros(c.d.T,c.d.H,c.d.W/3.6,F,{...P,slope:0,aspect:0,wd:c.d.wd}).R;
-    const k=cls(c.d[ly.k],ly.th);
-    L.rectangle(c.b,{weight:.5,color:'#fff',opacity:.4,fillColor:k>=0?COL[k]:'#888',fillOpacity:.6}).bindPopup(()=>popup(i)).addTo(grp);
   });
+  drawField(ly);
   L.circleMarker([G.lat,G.lon],{radius:5,color:'#000',weight:2,fillColor:'#fff',fillOpacity:1,interactive:false}).addTo(grp);
   const t=ly.th,rng=['≤ '+t[0],t[0]+' – '+t[1],t[1]+' – '+t[2],'> '+t[2]];
   $('spLeg').innerHTML=`<b style="color:var(--ink)">${ly.t}</b>`+KLS.map((n,i)=>`<span><i style="background:${COL[i]}"></i>${n} (${rng[i]})</span>`).join('');
   if(key==='R'&&(P.err||!F.ok))sm('Lapisan jerami butuh input bahan bakar yang valid.');
 }
 
-window.spPick=i=>{
-  const c=G.cells[i];
+window.spPick=()=>{
+  const c=G.pk;
   $('lat').value=c.lat.toFixed(4);$('lon').value=c.lon.toFixed(4);$('loc_name').value='Mencari lokasi...';
   map.closePopup();window.scrollTo({top:0,behavior:'smooth'});go();
 };
