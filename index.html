@@ -208,7 +208,6 @@ function ros(T,RH,U10,F,P){
   const den=4.774*Math.pow(s,0.1)-7.27;if(!(den>0))return bad;
   const A=1/den,s15=Math.pow(s,1.5),gmax=s15/(495+0.0594*s15);
   const beta=F.rho/P.rp,bop=3.348*Math.pow(s,-0.8189),ratioRaw=beta/bop;
-  // Klem tunggal dipakai konsisten di Γ', φw, dan φs (pagar ekstrapolasi di luar jangkauan model)
   const ratio=clamp(ratioRaw,0.15,4.0);
   const gam=gmax*Math.pow(ratio,A)*Math.exp(A*(1-ratio));
   const rm=Math.min(1,Mf/Mx),etaM=Mf>=Mx?0:Math.max(0,1-2.59*rm+5.11*rm*rm-3.52*rm*rm*rm);
@@ -220,14 +219,12 @@ function ros(T,RH,U10,F,P){
   const C=7.47*Math.exp(-0.133*Math.pow(s,0.55)),B=0.02526*Math.pow(s,0.54),E=0.715*Math.exp(-3.59e-4*s);
   const req=U10*P.waf*FPM,lim=0.9*IR,eff=Math.min(req,lim);
   const phiW=IR>0?C*Math.pow(eff,B)*Math.pow(ratio,-E):0;
-  // φs memakai β absolut (bukan β/βop), sesuai Rothermel
   const tanS=Math.tan(P.slope*Math.PI/180);
   const phiS=5.275*Math.pow(Math.max(beta,1e-4),-0.3)*tanS*tanS;
   const radW=((P.wd+180)%360)*Math.PI/180,radS=P.aspect*Math.PI/180;
   const phiX=phiW*Math.sin(radW)+phiS*Math.sin(radS),phiY=phiW*Math.cos(radW)+phiS*Math.cos(radS);
   const phiNet=Math.hypot(phiX,phiY);
   const spreadDir=phiNet>1e-9?(Math.atan2(phiX,phiY)*180/Math.PI+360)%360:(P.wd+180)%360;
-  // Angin 10 m ekuivalen dari φ netto (angin + lereng), dipakai untuk rasio panjang/lebar
   const ueqFt=IR>0&&phiNet>0?Math.pow(phiNet/(C*Math.pow(ratio,-E)),1/B):0;
   const bulk=F.rho*0.062428;
   const R0l=IR>0?IR*xi/(bulk*eps*Qig)*FT:0,Rl=R0l*(1+phiNet);
@@ -250,16 +247,13 @@ function stab(u){
   if(sw>=50)return(u<2?'ABB':u<3?'BBC':u<5?'BCC':'CDD')[sw>=600?0:sw>=300?1:2];
   return cc!=null&&cc<50?(u<3?'F':u<5?'E':'D'):(u<3?'E':'D');
 }
-// Briggs open-country (σy: A–B 0.22, C 0.16, D 0.11, E–F 0.08)
 function sg(c,x){
   const r=Math.sqrt(1+1e-4*x);
   const sy={A:.22,B:.22,C:.16,D:.11,E:.08,F:.08}[c]*x/r;
   const sz={A:.2*x,B:.12*x,C:.08*x/Math.sqrt(1+2e-4*x),D:.06*x/Math.sqrt(1+15e-4*x),E:.03*x/(1+3e-4*x),F:.016*x/(1+3e-4*x)}[c];
   return[sy,sz];
 }
-// Sudut antara arah rambat dan arah angin bertiup (penerima ada di arah rambat)
 const dAng=(o,P)=>((o.spreadDir-(P.wd+180))*Math.PI/180);
-// d = jarak dari ujung api ke penerima searah rambat → jarak sepanjang angin & lateral
 function conc(M,t,xc,d,u,cls,T,b,dl){
   if(!(t>0)||!(u>=0.5))return NaN;
   if(!(M>0))return 0;
@@ -536,7 +530,8 @@ sec.innerHTML=`<h2>Peta Kerawanan Api (gaya SPARTAN)</h2>
   <option value="0.1">Rapat: ≈ 11 km (Area Lokal)</option>
   <option value="0.25">Sedang: ≈ 28 km (Area Regional)</option>
   <option value="0.5">Luas: ≈ 55 km (Area Provinsi)</option>
-  <option value="nat" selected>Nasional: Seluruh Indonesia</option>
+  <option value="prov" selected>Provinsi saya (mengikuti batas wilayah)</option>
+  <option value="nat">Nasional: Seluruh Indonesia</option>
 </select></label>
 </div>
 <div class="row"><button class="o" id="mLoc" type="button">Gunakan Lokasi Saya</button><button id="mGo" type="button">Perbarui Peta</button></div>
@@ -553,31 +548,76 @@ function loadLeaflet(){
     document.head.appendChild(Object.assign(document.createElement('script'),{src:CDN+'leaflet.min.js',onload:ok,onerror:()=>no(new Error('Leaflet gagal dimuat (offline?)'))}));
   });
 }
-/* =====================================================================
-   PATCH PETA NASIONAL — index.html
-   LANGKAH:
-   1) Hapus baris:   let N = 13; ...
-   2) Ganti SELURUH blok dari "async function loadGrid(){" sampai akhir
-      "function drawField(ly){ ... }" dengan isi file ini (di bawah garis).
-      (fungsi hex() dan cls() ada di dalam blok ini juga, jadi ikut diganti)
-   3) Di HTML <select id="mSpan">:  value="3.3"  ->  value="nat"
-   4) Di fungsi paint(), ganti:
-        L.circleMarker([G.lat,G.lon],
-      menjadi:
-        L.circleMarker([G.mlat,G.mlon],
-   ===================================================================== */
 
 // Cakupan nasional: lintang 8°LU – 12°LS, bujur 93°BT – 143°BT, grid 2°
 const NAT={lat0:7,lon0:94,step:2,rows:10,cols:25};
 
+/* ---------- BLOK A: pengganti clipLand + helper provinsi ---------- */
+let PL=null;
+function provList(){            // daftar provinsi; tiap provinsi = array poligon
+  if(!geoJsonData)return[];
+  if(PL)return PL;
+  const geo=g=>{
+    if(!g)return[];
+    if(g.type==='Polygon')return[g.coordinates];
+    if(g.type==='MultiPolygon')return g.coordinates;
+    if(g.type==='GeometryCollection')return g.geometries.flatMap(geo);
+    return[];
+  };
+  const d=geoJsonData,out=[];
+  (d.type==='FeatureCollection'?d.features:[d]).forEach(ft=>{
+    const p=geo(ft.type==='Feature'?ft.geometry:ft);if(p.length)out.push(p);
+  });
+  return PL=out;
+}
+const inRing=(r,x,y)=>{let c=false;for(let i=0,j=r.length-1;i<r.length;j=i++){const[xi,yi]=r[i],[xj,yj]=r[j];if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)c=!c}return c};
+const inPoly=(rings,x,y)=>inRing(rings[0],x,y)&&!rings.slice(1).some(h=>inRing(h,x,y));
+const provAt=(lat,lon)=>provList().find(p=>p.some(rings=>inPoly(rings,lon,lat)))||null;
+const allPolys=()=>provList().flat();
+
+// Potong citra: hanya piksel di dalam poligon (polys) yang dipertahankan
+function clipLand(cv,lonW,lonE,mN,mS,mer,polys){
+  const m=document.createElement('canvas');m.width=cv.width;m.height=cv.height;
+  const mc=m.getContext('2d');mc.fillStyle='#000';
+  polys.forEach(rings=>{
+    mc.beginPath();
+    rings.forEach(ring=>{
+      ring.forEach(([lo,la],i)=>{
+        const x=(lo-lonW)/(lonE-lonW)*cv.width,y=(mN-mer(la))/(mN-mS)*cv.height;
+        i?mc.lineTo(x,y):mc.moveTo(x,y);
+      });
+      mc.closePath();
+    });
+    mc.fill('evenodd');
+  });
+  const ctx=cv.getContext('2d');
+  ctx.globalCompositeOperation='destination-in';
+  ctx.drawImage(m,0,0);
+  ctx.globalCompositeOperation='source-over';
+}
+
 async function loadGrid(){
-  const dt=$('dt').value,nat=$('mSpan').value==='nat';
+  /* ---------- BLOK C: pembuka loadGrid (sampai penentuan grid) ---------- */
+  const dt=$('dt').value,mode=$('mSpan').value,nat=mode==='nat';
   const lat=num('lat'),lon=num('lon');
   if(!dt||!fin(lat)||!fin(lon)||Math.abs(lat)>85||Math.abs(lon)>180){sm('Cek koordinat dan waktu.');return}
 
+  // provinces.json harus sudah ada sebelum grid ditentukan
+  if(!geoJsonData){try{geoJsonData=await fetch('provinces.json').then(r=>r.json())}catch(e){}}
+
   let step,NX,NY,lat0,lon0;
+  const pv=nat?null:provAt(lat,lon);
   if(nat){step=NAT.step;NX=NAT.cols;NY=NAT.rows;lat0=NAT.lat0;lon0=NAT.lon0}
-  else{step=+$('mSpan').value;NX=NY=13;lat0=lat+step*6;lon0=lon-step*6}
+  else if(mode==='prov'&&pv){
+    // Grid menutupi seluruh provinsi, maks. ±240 titik
+    let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+    pv.forEach(p=>p[0].forEach(([lo,la])=>{x0=Math.min(x0,lo);x1=Math.max(x1,lo);y0=Math.min(y0,la);y1=Math.max(y1,la)}));
+    const w=x1-x0,h=y1-y0;
+    step=Math.max(0.1,Math.ceil(Math.sqrt(w*h/240)*20)/20);
+    NX=Math.ceil(w/step)+1;NY=Math.ceil(h/step)+1;
+    lat0=(y0+y1)/2+(NY-1)*step/2;lon0=(x0+x1)/2-(NX-1)*step/2;
+  }
+  else{step=mode==='prov'?0.25:+mode;NX=NY=13;lat0=lat+step*6;lon0=lon-step*6}
 
   const day=dt.slice(0,10),old=(Date.now()-new Date(day+'T00:00'))/864e5>5;
   const base=old?'https://archive-api.open-meteo.com/v1/archive':'https://api.open-meteo.com/v1/forecast';
@@ -589,7 +629,6 @@ async function loadGrid(){
 
   try{
     await loadLeaflet();
-    if(!geoJsonData)geoJsonData=await fetch('provinces.json').then(r=>r.json()).catch(()=>null);
 
     const urls=[];for(let i=0;i<cells.length;i+=CH)urls.push(mk(cells.slice(i,i+CH)));
     // maks. 3 request paralel agar tidak kena rate-limit Open-Meteo
@@ -638,41 +677,7 @@ function interp(v,x,y,NX,NY){
 }
 const cls=(v,th)=>fin(v)?th.filter(t=>v>t).length:-1;
 
-// Potong citra hanya di daratan memakai poligon provinces.json (mode nasional)
-function clipLand(cv,lonW,lonE,mN,mS,mer){
-  if(!geoJsonData)return false;
-  const polys=[];
-  const walk=g=>{
-    if(!g)return;
-    if(g.type==='FeatureCollection')g.features.forEach(walk);
-    else if(g.type==='Feature')walk(g.geometry);
-    else if(g.type==='GeometryCollection')g.geometries.forEach(walk);
-    else if(g.type==='Polygon')polys.push(g.coordinates);
-    else if(g.type==='MultiPolygon')g.coordinates.forEach(p=>polys.push(p));
-  };
-  walk(geoJsonData);
-  if(!polys.length)return false;
-  const m=document.createElement('canvas');m.width=cv.width;m.height=cv.height;
-  const mc=m.getContext('2d');mc.fillStyle='#000';
-  polys.forEach(rings=>{
-    mc.beginPath();
-    rings.forEach(ring=>{
-      ring.forEach(([lo,la],i)=>{
-        const x=(lo-lonW)/(lonE-lonW)*cv.width,y=(mN-mer(la))/(mN-mS)*cv.height;
-        i?mc.lineTo(x,y):mc.moveTo(x,y);
-      });
-      mc.closePath();
-    });
-    mc.fill('evenodd');
-  });
-  const ctx=cv.getContext('2d');
-  ctx.globalCompositeOperation='destination-in';
-  ctx.drawImage(m,0,0);
-  ctx.globalCompositeOperation='source-over';
-  return true;
-}
-
-// Citra dirender dalam proyeksi Web Mercator (baris piksel = lintang Mercator) agar sejajar dengan tile peta
+/* ---------- BLOK B: pengganti drawField ---------- */
 function drawField(ly){
   const{NX,NY,step,nat}=G,e=step/2;
   const latN=G.lat0+e,latS=G.lat0-(NY-1)*step-e,lonW=G.lon0-e,lonE=G.lon0+(NX-1)*step+e;
@@ -682,20 +687,25 @@ function drawField(ly){
   const cv=document.createElement('canvas');cv.width=Sx;cv.height=Sy;
   const ctx=cv.getContext('2d'),img=ctx.createImageData(Sx,Sy);
   const v=G.cells.map(c=>c.d?c.d[ly.k]:NaN),rgb=COL.map(hex),el=G.cells.map(c=>c.el);
-  // Masker elevasi hanya untuk grid rapat; di mode nasional grid terlalu jarang -> pakai poligon
-  const mask=!nat&&el.some(z=>z>0.5);
+
+  // Nasional: semua provinsi. Lainnya: provinsi tempat pengguna berada.
+  const polys=nat?allPolys():(provAt(G.mlat,G.mlon)||allPolys());
+  const clip=polys.length>0;
+  // Masker elevasi hanya cadangan bila provinces.json gagal dimuat
+  const mask=!clip&&!nat&&el.some(z=>z>0.5);
+
   for(let py=0;py<Sy;py++){
     const lat=inv(mN-(py+.5)/Sy*(mN-mS)),gy=(G.lat0-lat)/step;
     for(let px=0;px<Sx;px++){
       const gx=(px+.5)/Sx*NX-.5,val=interp(v,gx,gy,NX,NY),k=cls(val,ly.th);
       if(k<0)continue;
       if(mask){const z=interp(el,gx,gy,NX,NY);if(fin(z)&&z<=0.5)continue}
-      const edge=Math.min(gx+.5,NX-.5-gx,gy+.5,NY-.5-gy),fade=clamp(edge/0.6,0,1),o=(py*Sx+px)*4;
+      const edge=Math.min(gx+.5,NX-.5-gx,gy+.5,NY-.5-gy),fade=clip?1:clamp(edge/0.6,0,1),o=(py*Sx+px)*4;
       img.data[o]=rgb[k][0];img.data[o+1]=rgb[k][1];img.data[o+2]=rgb[k][2];img.data[o+3]=Math.round(220*fade);
     }
   }
   ctx.putImageData(img,0,0);
-  if(nat)clipLand(cv,lonW,lonE,mN,mS,mer);
+  if(clip)clipLand(cv,lonW,lonE,mN,mS,mer,polys);
   L.imageOverlay(cv.toDataURL(),[[latS,lonW],[latN,lonE]],{interactive:false,className:'citra-overlay'}).addTo(grp);
 }
 
