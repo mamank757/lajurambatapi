@@ -533,10 +533,10 @@ sec.innerHTML=`<h2>Peta Kerawanan Api (gaya SPARTAN)</h2>
 <div class="g">
   <label class="full">Lapisan peta<select id="mLayer">${Object.entries(LY).map(([k,v])=>`<option value="${k}">${v.n} — ${v.t}</option>`).join('')}</select></label>
   <label class="full">Jarak / Cakupan Peta<select id="mSpan">
-  <option value="0.1" selected>Rapat: ≈ 11 km (Area Lokal)</option>
+  <option value="0.1">Rapat: ≈ 11 km (Area Lokal)</option>
   <option value="0.25">Sedang: ≈ 28 km (Area Regional)</option>
   <option value="0.5">Luas: ≈ 55 km (Area Provinsi)</option>
-  <option value="nat">Nasional: Seluruh Indonesia</option>
+  <option value="nat" selected>Nasional: Seluruh Indonesia</option>
 </select></label>
 </div>
 <div class="row"><button class="o" id="mLoc" type="button">Gunakan Lokasi Saya</button><button id="mGo" type="button">Perbarui Peta</button></div>
@@ -749,6 +749,7 @@ function locate(){
   },()=>{sm('Izin lokasi ditolak/gagal, memakai koordinat bawaan.');loadGrid()},{enableHighAccuracy:true,timeout:15000,maximumAge:60000});
 }
 $('mGo').onclick=loadGrid;
+  $('mSpan').addEventListener('change',loadGrid);
 $('mLoc').onclick=locate;
 $('mLayer').addEventListener('change',paint);
 document.addEventListener('input',e=>{
