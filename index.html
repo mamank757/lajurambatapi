@@ -564,7 +564,6 @@ async function loadGrid(){
     if(!geoJsonData) geoJsonData = await fetch('sulawesi-selatan.json').then(r=>r.json()).catch(()=>null);
     
     const urls=[];for(let i=0;i<cells.length;i+=CH)urls.push(mk(cells.slice(i,i+CH)));
-    const urls=[];for(let i=0;i<cells.length;i+=CH)urls.push(mk(cells.slice(i,i+CH)));
     const res=await Promise.all(urls.map(u=>fetch(u).then(r=>r.json())));
     const arr=[];
     res.forEach(j=>{if(j.error)throw new Error(j.reason||'Ditolak server cuaca');arr.push(...(Array.isArray(j)?j:[j]))});
@@ -645,16 +644,15 @@ function paint(){
   if (geoJsonData) {
     L.geoJSON(geoJsonData, {
       style: {
-        color: '#ffffff', // Warna garis batas (putih untuk kontras)
-        weight: 1.5,      // Ketebalan garis
-        fillOpacity: 0    // Harus 0 agar citra sebaran api di bawahnya tidak tertutup
+        color: 'var(--ink)', // Menggunakan variabel CSS bawaan Anda (gelap di Light Mode, terang di Dark Mode)
+        weight: 1.5,      
+        fillOpacity: 0    
       },
-      interactive: false  // Harus false agar klik pengguna tetap tembus ke grid cuaca di bawahnya
+      interactive: false  
     }).addTo(grp);
   }
   // -------------------------------------------------------
 
-  L.circleMarker([G.lat,G.lon],{radius:5,color:'#000',weight:2,fillColor:'#fff',fillOpacity:1,interactive:false}).addTo(grp);
   L.circleMarker([G.lat,G.lon],{radius:5,color:'#000',weight:2,fillColor:'#fff',fillOpacity:1,interactive:false}).addTo(grp);
   const t=ly.th,rng=['≤ '+t[0],t[0]+' – '+t[1],t[1]+' – '+t[2],'> '+t[2]];
   $('spLeg').innerHTML=`<b style="color:var(--ink)">${ly.t}</b>`+KLS.map((n,i)=>`<span><i style="background:${COL[i]}"></i>${n} (${rng[i]})</span>`).join('');
