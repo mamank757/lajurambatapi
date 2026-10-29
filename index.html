@@ -464,7 +464,8 @@ if('serviceWorker' in navigator)window.addEventListener('load',()=>{navigator.se
 
 /* ===== PETA KERAWANAN API (gaya SPARTAN) ===== */
 (()=>{
-const CDN='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/',N=13,SPIN=21,CH=45;
+const CDN='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/',SPIN=21,CH=45;
+let N = 13; // Ubah dari const ke let agar grid bisa menyesuaikan ukuran
 const COL=['#4e9a51','#e2c534','#ec8a2b','#d3322a'],KLS=['Rendah','Sedang','Tinggi','Ekstrem'];
 const LY={
   ISI:{n:'ISI',t:'Kemudahan penyebaran api',k:'isi',th:[3,6,10]},
@@ -531,7 +532,12 @@ const sec=document.createElement('section');
 sec.innerHTML=`<h2>Peta Kerawanan Api (gaya SPARTAN)</h2>
 <div class="g">
   <label class="full">Lapisan peta<select id="mLayer">${Object.entries(LY).map(([k,v])=>`<option value="${k}">${v.n} — ${v.t}</option>`).join('')}</select></label>
-  <label class="full">Jarak titik data<select id="mSpan"><option value="0.1" selected>Rapat: ≈ 11 km/titik (area ≈ 145 km)</option><option value="0.25">Sedang: ≈ 28 km/titik (area ≈ 360 km)</option><option value="0.5">Luas: ≈ 55 km/titik (area ≈ 720 km)</option></select></label>
+  <label class="full">Jarak / Cakupan Peta<select id="mSpan">
+  <option value="0.1" selected>Rapat: ≈ 11 km (Area Lokal)</option>
+  <option value="0.25">Sedang: ≈ 28 km (Area Regional)</option>
+  <option value="0.5">Luas: ≈ 55 km (Area Provinsi)</option>
+  <option value="3.3">Nasional: Seluruh Indonesia</option>
+</select></label>
 </div>
 <div class="row"><button class="o" id="mLoc" type="button">Gunakan Lokasi Saya</button><button id="mGo" type="button">Perbarui Peta</button></div>
 <div id="spMsg">Mencari posisi Anda…</div>
@@ -548,7 +554,21 @@ function loadLeaflet(){
   });
 }
 async function loadGrid(){
-  const lat=num('lat'),lon=num('lon'),dt=$('dt').value,step=+$('mSpan').value,half=step*(N-1)/2;
+  // GANTI MENJADI INI:
+let lat = num('lat'), lon = num('lon');
+const dt = $('dt').value, step = +$('mSpan').value;
+
+if (step === 3.3) {
+  // PAKSAAN MODE NASIONAL
+  lat = -2.0;   // Titik tengah lintang Indonesia (Khatulistiwa/Kalimantan)
+  lon = 118.0;  // Titik tengah bujur Indonesia
+  N = 15;       // Perbesar matriks agar bentangannya menutupi 95° BT hingga 141° BT
+} else {
+  // MODE LOKAL
+  N = 13;       // Kembalikan ke grid 13x13 standar
+}
+
+const half = step * (N - 1) / 2;
   if(!dt||!fin(lat)||!fin(lon)||Math.abs(lat)>85||Math.abs(lon)>180){sm('Cek koordinat dan waktu.');return}
   const day=dt.slice(0,10),old=(Date.now()-new Date(day+'T00:00'))/864e5>5;
   const base=old?'https://archive-api.open-meteo.com/v1/archive':'https://api.open-meteo.com/v1/forecast';
