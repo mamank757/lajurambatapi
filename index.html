@@ -465,7 +465,7 @@ if('serviceWorker' in navigator)window.addEventListener('load',()=>{navigator.se
 /* ===== PETA KERAWANAN API (gaya SPARTAN) ===== */
 (()=>{
 const CDN='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/',SPIN=21,CH=45;
-let N = 13; // Ubah dari const ke let agar grid bisa menyesuaikan ukuran
+
 const COL=['#4e9a51','#e2c534','#ec8a2b','#d3322a'],KLS=['Rendah','Sedang','Tinggi','Ekstrem'];
 const LY={
   ISI:{n:'ISI',t:'Kemudahan penyebaran api',k:'isi',th:[3,6,10]},
@@ -536,7 +536,7 @@ sec.innerHTML=`<h2>Peta Kerawanan Api (gaya SPARTAN)</h2>
   <option value="0.1" selected>Rapat: ≈ 11 km (Area Lokal)</option>
   <option value="0.25">Sedang: ≈ 28 km (Area Regional)</option>
   <option value="0.5">Luas: ≈ 55 km (Area Provinsi)</option>
-  <option value="3.3">Nasional: Seluruh Indonesia</option>
+  <option value="nat">Nasional: Seluruh Indonesia</option>
 </select></label>
 </div>
 <div class="row"><button class="o" id="mLoc" type="button">Gunakan Lokasi Saya</button><button id="mGo" type="button">Perbarui Peta</button></div>
@@ -553,93 +553,150 @@ function loadLeaflet(){
     document.head.appendChild(Object.assign(document.createElement('script'),{src:CDN+'leaflet.min.js',onload:ok,onerror:()=>no(new Error('Leaflet gagal dimuat (offline?)'))}));
   });
 }
+/* =====================================================================
+   PATCH PETA NASIONAL — index.html
+   LANGKAH:
+   1) Hapus baris:   let N = 13; ...
+   2) Ganti SELURUH blok dari "async function loadGrid(){" sampai akhir
+      "function drawField(ly){ ... }" dengan isi file ini (di bawah garis).
+      (fungsi hex() dan cls() ada di dalam blok ini juga, jadi ikut diganti)
+   3) Di HTML <select id="mSpan">:  value="3.3"  ->  value="nat"
+   4) Di fungsi paint(), ganti:
+        L.circleMarker([G.lat,G.lon],
+      menjadi:
+        L.circleMarker([G.mlat,G.mlon],
+   ===================================================================== */
+
+// Cakupan nasional: lintang 8°LU – 12°LS, bujur 93°BT – 143°BT, grid 2°
+const NAT={lat0:7,lon0:94,step:2,rows:10,cols:25};
+
 async function loadGrid(){
-  // GANTI MENJADI INI:
-let lat = num('lat'), lon = num('lon');
-const dt = $('dt').value, step = +$('mSpan').value;
-
-if (step === 3.3) {
-  // PAKSAAN MODE NASIONAL
-  lat = -2.0;   // Titik tengah lintang Indonesia (Khatulistiwa/Kalimantan)
-  lon = 118.0;  // Titik tengah bujur Indonesia
-  N = 15;       // Perbesar matriks agar bentangannya menutupi 95° BT hingga 141° BT
-} else {
-  // MODE LOKAL
-  N = 13;       // Kembalikan ke grid 13x13 standar
-}
-
-const half = step * (N - 1) / 2;
+  const dt=$('dt').value,nat=$('mSpan').value==='nat';
+  const lat=num('lat'),lon=num('lon');
   if(!dt||!fin(lat)||!fin(lon)||Math.abs(lat)>85||Math.abs(lon)>180){sm('Cek koordinat dan waktu.');return}
+
+  let step,NX,NY,lat0,lon0;
+  if(nat){step=NAT.step;NX=NAT.cols;NY=NAT.rows;lat0=NAT.lat0;lon0=NAT.lon0}
+  else{step=+$('mSpan').value;NX=NY=13;lat0=lat+step*6;lon0=lon-step*6}
+
   const day=dt.slice(0,10),old=(Date.now()-new Date(day+'T00:00'))/864e5>5;
   const base=old?'https://archive-api.open-meteo.com/v1/archive':'https://api.open-meteo.com/v1/forecast';
   const s0=new Date(day+'T00:00:00Z');s0.setUTCDate(s0.getUTCDate()-SPIN);
   const cells=[];
-  for(let r=0;r<N;r++)for(let c=0;c<N;c++)cells.push({lat:lat+half-r*step,lon:lon-half+c*step});
+  for(let r=0;r<NY;r++)for(let c=0;c<NX;c++)cells.push({lat:lat0-r*step,lon:lon0+c*step});
   const mk=p=>`${base}?latitude=${p.map(c=>c.lat.toFixed(3)).join()}&longitude=${p.map(c=>c.lon.toFixed(3)).join()}&start_date=${s0.toISOString().slice(0,10)}&end_date=${day}&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,precipitation&wind_speed_unit=kmh&timezone=auto`;
   $('mGo').disabled=true;sm('Mengunduh data untuk '+cells.length+' titik…');
-  
-    try{
+
+  try{
     await loadLeaflet();
-    // Tambahkan baris ini untuk menarik file json
-    if(!geoJsonData) geoJsonData = await fetch('provinces.json').then(r=>r.json()).catch(()=>null);
-    
+    if(!geoJsonData)geoJsonData=await fetch('provinces.json').then(r=>r.json()).catch(()=>null);
+
     const urls=[];for(let i=0;i<cells.length;i+=CH)urls.push(mk(cells.slice(i,i+CH)));
-    const res=await Promise.all(urls.map(u=>fetch(u).then(r=>r.json())));
+    // maks. 3 request paralel agar tidak kena rate-limit Open-Meteo
+    const res=[];
+    for(let i=0;i<urls.length;i+=3){
+      sm(`Mengunduh data… ${Math.min(i*CH,cells.length)}/${cells.length} titik`);
+      res.push(...await Promise.all(urls.slice(i,i+3).map(u=>fetch(u).then(r=>r.json()))));
+    }
     const arr=[];
     res.forEach(j=>{if(j.error)throw new Error(j.reason||'Ditolak server cuaca');arr.push(...(Array.isArray(j)?j:[j]))});
     cells.forEach((c,i)=>{c.d=arr[i]&&arr[i].hourly?series(arr[i].hourly):null;c.el=arr[i]&&arr[i].elevation!=null?arr[i].elevation:NaN});
-    G={cells,lat,lon,half,step,day,pk:null};
+    G={cells,NX,NY,lat0,lon0,step,day,nat,mlat:lat,mlon:lon,pk:null};
+
     if(!map){
-      map=L.map('spMap',{zoomSnap:.25,zoomDelta:.5}).setView([lat,lon],8);
+      map=L.map('spMap',{zoomSnap:.25,zoomDelta:.5}).setView([lat0,lon0],5);
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap'}).addTo(map);
       grp=L.layerGroup().addTo(map);
       map.on('click',e=>{
         if(!G)return;
-        const c=Math.round((e.latlng.lng-(G.lon-G.half))/G.step),r=Math.round((G.lat+G.half-e.latlng.lat)/G.step);
-        if(c<0||r<0||c>=N||r>=N||!G.cells[r*N+c].d)return;
+        const c=Math.round((e.latlng.lng-G.lon0)/G.step),r=Math.round((G.lat0-e.latlng.lat)/G.step);
+        if(c<0||r<0||c>=G.NX||r>=G.NY||!G.cells[r*G.NX+c].d)return;
         G.pk={lat:e.latlng.lat,lon:e.latlng.lng};
-        L.popup().setLatLng(e.latlng).setContent(popup(r*N+c)).openOn(map);
+        L.popup().setLatLng(e.latlng).setContent(popup(r*G.NX+c)).openOn(map);
       });
     }
     map.invalidateSize();
-    map.fitBounds([[lat-half-step/2,lon-half-step/2],[lat+half+step/2,lon+half+step/2]],{padding:[6,6]});
+    map.fitBounds([[lat0-(NY-1)*step-step/2,lon0-step/2],[lat0+step/2,lon0+(NX-1)*step+step/2]],{padding:[6,6]});
     paint();
-    sm(`Peta ${f(lat,3)}, ${f(lon,3)} · ${day} (jam 12 setempat), ${cells.filter(c=>c.d).length}/${cells.length} titik valid. Ketuk peta untuk detail.`);
+    const ok=cells.filter(c=>c.d).length;
+    sm(nat
+      ?`Peta nasional · ${day} (jam 12 setempat), ${ok}/${cells.length} titik valid (grid ${step}°). Ketuk peta untuk detail.`
+      :`Peta ${f(lat,3)}, ${f(lon,3)} · ${day} (jam 12 setempat), ${ok}/${cells.length} titik valid. Ketuk peta untuk detail.`);
   }catch(e){sm('Gagal: '+e.message)}
   finally{$('mGo').disabled=false}
 }
 
 const hex=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
-function interp(v,x,y){
-  x=clamp(x,0,N-1);y=clamp(y,0,N-1);
-  const x0=Math.min(N-2,Math.floor(x)),y0=Math.min(N-2,Math.floor(y)),fx=x-x0,fy=y-y0;
+function interp(v,x,y,NX,NY){
+  x=clamp(x,0,NX-1);y=clamp(y,0,NY-1);
+  const x0=Math.min(NX-2,Math.floor(x)),y0=Math.min(NY-2,Math.floor(y)),fx=x-x0,fy=y-y0;
   let s=0,w=0;
   [[0,0,(1-fx)*(1-fy)],[1,0,fx*(1-fy)],[0,1,(1-fx)*fy],[1,1,fx*fy]].forEach(([dx,dy,k])=>{
-    const a=v[(y0+dy)*N+x0+dx];if(fin(a)&&k>0){s+=a*k;w+=k}
+    const a=v[(y0+dy)*NX+x0+dx];if(fin(a)&&k>0){s+=a*k;w+=k}
   });
   return w>1e-6?s/w:NaN;
 }
 const cls=(v,th)=>fin(v)?th.filter(t=>v>t).length:-1;
 
+// Potong citra hanya di daratan memakai poligon provinces.json (mode nasional)
+function clipLand(cv,lonW,lonE,mN,mS,mer){
+  if(!geoJsonData)return false;
+  const polys=[];
+  const walk=g=>{
+    if(!g)return;
+    if(g.type==='FeatureCollection')g.features.forEach(walk);
+    else if(g.type==='Feature')walk(g.geometry);
+    else if(g.type==='GeometryCollection')g.geometries.forEach(walk);
+    else if(g.type==='Polygon')polys.push(g.coordinates);
+    else if(g.type==='MultiPolygon')g.coordinates.forEach(p=>polys.push(p));
+  };
+  walk(geoJsonData);
+  if(!polys.length)return false;
+  const m=document.createElement('canvas');m.width=cv.width;m.height=cv.height;
+  const mc=m.getContext('2d');mc.fillStyle='#000';
+  polys.forEach(rings=>{
+    mc.beginPath();
+    rings.forEach(ring=>{
+      ring.forEach(([lo,la],i)=>{
+        const x=(lo-lonW)/(lonE-lonW)*cv.width,y=(mN-mer(la))/(mN-mS)*cv.height;
+        i?mc.lineTo(x,y):mc.moveTo(x,y);
+      });
+      mc.closePath();
+    });
+    mc.fill('evenodd');
+  });
+  const ctx=cv.getContext('2d');
+  ctx.globalCompositeOperation='destination-in';
+  ctx.drawImage(m,0,0);
+  ctx.globalCompositeOperation='source-over';
+  return true;
+}
+
 // Citra dirender dalam proyeksi Web Mercator (baris piksel = lintang Mercator) agar sejajar dengan tile peta
 function drawField(ly){
-  const S=640,cv=document.createElement('canvas');cv.width=cv.height=S;
-  const ctx=cv.getContext('2d'),img=ctx.createImageData(S,S),v=G.cells.map(c=>c.d?c.d[ly.k]:NaN),rgb=COL.map(hex),el=G.cells.map(c=>c.el),mask=el.some(z=>z>0.5);
-  const e=G.half+G.step/2,latN=G.lat+e,latS=G.lat-e,lonW=G.lon-e;
+  const{NX,NY,step,nat}=G,e=step/2;
+  const latN=G.lat0+e,latS=G.lat0-(NY-1)*step-e,lonW=G.lon0-e,lonE=G.lon0+(NX-1)*step+e;
   const mer=a=>Lg(Math.tan(Math.PI/4+a*Math.PI/360)),inv=m=>(2*Math.atan(E(m))-Math.PI/2)*180/Math.PI;
   const mN=mer(latN),mS=mer(latS);
-  for(let py=0;py<S;py++){
-    const lat=inv(mN-(py+.5)/S*(mN-mS)),gy=(G.lat+G.half-lat)/G.step;
-    for(let px=0;px<S;px++){
-      const gx=(px+.5)/S*N-.5,val=interp(v,gx,gy),k=cls(val,ly.th);
+  const Sx=nat?1400:640,Sy=Math.round(Sx*(mN-mS)/((lonE-lonW)*Math.PI/180));
+  const cv=document.createElement('canvas');cv.width=Sx;cv.height=Sy;
+  const ctx=cv.getContext('2d'),img=ctx.createImageData(Sx,Sy);
+  const v=G.cells.map(c=>c.d?c.d[ly.k]:NaN),rgb=COL.map(hex),el=G.cells.map(c=>c.el);
+  // Masker elevasi hanya untuk grid rapat; di mode nasional grid terlalu jarang -> pakai poligon
+  const mask=!nat&&el.some(z=>z>0.5);
+  for(let py=0;py<Sy;py++){
+    const lat=inv(mN-(py+.5)/Sy*(mN-mS)),gy=(G.lat0-lat)/step;
+    for(let px=0;px<Sx;px++){
+      const gx=(px+.5)/Sx*NX-.5,val=interp(v,gx,gy,NX,NY),k=cls(val,ly.th);
       if(k<0)continue;
-      if(mask){const z=interp(el,gx,gy);if(fin(z)&&z<=0.5)continue}
-      const edge=Math.min(gx+.5,N-.5-gx,gy+.5,N-.5-gy),fade=clamp(edge/0.6,0,1),o=(py*S+px)*4;
+      if(mask){const z=interp(el,gx,gy,NX,NY);if(fin(z)&&z<=0.5)continue}
+      const edge=Math.min(gx+.5,NX-.5-gx,gy+.5,NY-.5-gy),fade=clamp(edge/0.6,0,1),o=(py*Sx+px)*4;
       img.data[o]=rgb[k][0];img.data[o+1]=rgb[k][1];img.data[o+2]=rgb[k][2];img.data[o+3]=Math.round(220*fade);
     }
   }
   ctx.putImageData(img,0,0);
-  L.imageOverlay(cv.toDataURL(),[[latS,lonW],[latN,lonW+2*e]],{interactive:false,className:'citra-overlay'}).addTo(grp);
+  if(nat)clipLand(cv,lonW,lonE,mN,mS,mer);
+  L.imageOverlay(cv.toDataURL(),[[latS,lonW],[latN,lonE]],{interactive:false,className:'citra-overlay'}).addTo(grp);
 }
 
 function popup(i){
@@ -673,7 +730,7 @@ function paint(){
   }
   // -------------------------------------------------------
 
-  L.circleMarker([G.lat,G.lon],{radius:5,color:'#000',weight:2,fillColor:'#fff',fillOpacity:1,interactive:false}).addTo(grp);
+  L.circleMarker([G.mlat,G.mlon],{radius:5,color:'#000',weight:2,fillColor:'#fff',fillOpacity:1,interactive:false}).addTo(grp);
   const t=ly.th,rng=['≤ '+t[0],t[0]+' – '+t[1],t[1]+' – '+t[2],'> '+t[2]];
   $('spLeg').innerHTML=`<b style="color:var(--ink)">${ly.t}</b>`+KLS.map((n,i)=>`<span><i style="background:${COL[i]}"></i>${n} (${rng[i]})</span>`).join('');
   if(key==='R'&&(P.err||!F.ok))sm('Lapisan jerami butuh input bahan bakar yang valid.');
