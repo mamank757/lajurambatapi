@@ -561,7 +561,7 @@ async function loadGrid(){
     try{
     await loadLeaflet();
     // Tambahkan baris ini untuk menarik file json
-    if(!geoJsonData) geoJsonData = await fetch('sulawesi-selatan.json').then(r=>r.json()).catch(()=>null);
+    if(!geoJsonData) geoJsonData = await fetch('provinces.json').then(r=>r.json()).catch(()=>null);
     
     const urls=[];for(let i=0;i<cells.length;i+=CH)urls.push(mk(cells.slice(i,i+CH)));
     const res=await Promise.all(urls.map(u=>fetch(u).then(r=>r.json())));
