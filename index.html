@@ -537,7 +537,7 @@ sec.innerHTML=`<h2>Peta Kerawanan Api (gaya SPARTAN)</h2>
 <div class="row"><button class="o" id="mLoc" type="button">Gunakan Lokasi Saya</button><button id="mGo" type="button">Perbarui Peta</button></div>
 <div id="spMsg">Mencari posisi Anda…</div>
 <div id="spMap"></div><div id="spLeg"></div>
-<p class="cap">Data: Open-Meteo, pembacaan jam 12 siang setempat, spin-up indeks ${SPIN} hari. Nilai antar titik diinterpolasi bilinear; area laut ditutup.</p>`;
+<p class="cap">Data: Open-Meteo, pembacaan pkl 12 siang setempat, spin-up indeks ${SPIN} hari. Nilai antar titik diinterpolasi bilinear; area laut ditutup.</p>`;
 const first=document.querySelector('main > section');first.parentNode.insertBefore(sec,first);
 const sm=t=>{$('spMsg').textContent=t};
 
@@ -659,8 +659,8 @@ async function loadGrid(){
     paint();
     const ok=cells.filter(c=>c.d).length;
     sm(nat
-      ?`Peta nasional · ${day} (jam 12 setempat), ${ok}/${cells.length} titik valid (grid ${step}°). Ketuk peta untuk detail.`
-      :`Peta ${f(lat,3)}, ${f(lon,3)} · ${day} (jam 12 setempat), ${ok}/${cells.length} titik valid. Ketuk peta untuk detail.`);
+      ?`Peta nasional · ${day} (pkl 12 setempat), ${ok}/${cells.length} titik valid (grid ${step}°). Ketuk peta untuk detail.`
+      :`Peta ${f(lat,3)}, ${f(lon,3)} · ${day} (pkl 12 setempat), ${ok}/${cells.length} titik valid. Ketuk peta untuk detail.`);
   }catch(e){sm('Gagal: '+e.message)}
   finally{$('mGo').disabled=false}
 }
